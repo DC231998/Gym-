@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Generador de catálogo de productos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --ink: #1B1D19;
+    --paper: #F7F5EE;
+    --panel: #FFFFFF;
+    --line: #E4E1D6;
+    --muted: #726F63;
+    --citrus: #D6FF3F;
+    --citrus-ink: #2B2E1A;
+    --coral: #FF5A36;
+    --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --ink: #F2F0E8;
+      --paper: #171815;
+      --panel: #1F211C;
+      --line: #33352C;
+      --muted: #9A978A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #F2F0E8;
+    --paper: #171815;
+    --panel: #1F211C;
+    --line: #33352C;
+    --muted: #9A978A;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  header.top h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(24px, 3.4vw, 34px);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  header.top h1 span {
+    background: var(--citrus);
+    color: var(--citrus-ink);
+    padding: 0 8px 2px;
+    border-radius: 3px;
+  }
+  header.top p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 420px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .panel h2 {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .field input[type="text"],
+  .field input[type="number"],
+  .field textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 10px 11px;
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+  .field textarea { resize: vertical; min-height: 64px; }
+  .field input:focus, .field textarea:focus, button:focus-visible {
+    outline: 2px solid var(--coral);
+    outline-offset: 1px;
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .photo-drop {
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+    margin-bottom: 14px;
+  }
+  .photo-drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .photo-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  button.primary {
+    width: 100%;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 9px;
+    padding: 12px 14px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button.primary:hover { opacity: 0.9; }
+  button.ghost {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .divider { height: 1px; background: var(--line); margin: 18px 0; }
+
+  .field select {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 10px 11px;
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .seg-btn {
+    flex: 1;
+    border: none;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 9px 8px;
+    font-size: 12.5px;
+    font-family: var(--font-body);
+    cursor: pointer;
+  }
+  .seg-btn + .seg-btn { border-left: 1px solid var(--line); }
+  .seg-btn.active { background: var(--ink); color: var(--paper); }
+
+  .card .theme-badge {
+    align-self: flex-start;
+    font-size: 10.5px;
+    color: var(--muted);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 2px 7px;
+    margin-top: 2px;
+  }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .theme-chip {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 10px 9px;
+    cursor: pointer;
+    text-align: left;
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .theme-chip.active {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+  .theme-chip .swatches { display: flex; gap: 4px; }
+  .theme-chip .swatches span { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+  .theme-chip .tname { font-size: 12.5px; font-weight: 600; }
+  .theme-chip .ttag { font-size: 11px; color: var(--muted); }
+
+  .empty {
+    border: 1px dashed var(--line);
+    border-radius: 14px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 5px solid var(--card-accent, var(--citrus));
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card .thumb { height: 150px; background-size: cover; background-position: center; background-color: var(--paper); }
+  .card .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .card .name { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .card .price { color: var(--coral); font-weight: 600; font-size: 14px; }
+  .card .desc { color: var(--muted); font-size: 12.5px; line-height: 1.4; flex: 1; }
+  .card .actions { display: flex; gap: 8px; margin-top: 8px; }
+
+  .gen-bar {
+    margin-top: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .gen-bar .count { color: var(--muted); font-size: 13px; }
+  .gen-btn {
+    background: var(--citrus);
+    color: var(--citrus-ink);
+    border: none;
+    border-radius: 10px;
+    padding: 13px 22px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14.5px;
+    cursor: pointer;
+  }
+  .gen-btn:disabled { opacity: 0.5; cursor: default; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  .status.err { color: var(--coral); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Catálogo <span>PDF</span></h1>
+    <p>Carga fotos, precios y descripciones, elige un diseño y genera un catálogo en PDF listo para enviar a tus clientes.</p>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Datos del negocio</h2>
+      <div class="field">
+        <label for="bizName">Nombre del negocio</label>
+        <input type="text" id="bizName" placeholder="Ej. Barritas del Norte">
+      </div>
+      <div class="field">
+        <label for="bizTag">Frase o giro del negocio</label>
+        <input type="text" id="bizTag" placeholder="Ej. Barras de proteína hechas a mano">
+      </div>
+      <div class="field">
+        <label for="bizContact">Contacto (teléfono, Instagram, etc.)</label>
+        <input type="text" id="bizContact" placeholder="Ej. WhatsApp 55 1234 5678 · @barritasdelnorte">
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Diseño del catálogo</h2>
+      <div class="field">
+        <label>Tema de la portada</label>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+      <div class="field">
+        <label>Productos por hoja</label>
+        <div class="seg" id="densitySeg">
+          <button type="button" class="seg-btn active" data-density="2">2 por hoja</button>
+          <button type="button" class="seg-btn" data-density="4">4 por hoja</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2 id="formTitle">Agregar producto</h2>
+      <div class="photo-drop" id="photoDrop">
+        <span id="photoHint">Toca para subir una foto</span>
+        <input type="file" id="photoInput" accept="image/*">
+      </div>
+      <div class="field">
+        <label for="pName">Nombre del producto</label>
+        <input type="text" id="pName" placeholder="Ej. Barra de proteína chocolate">
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="pPrice">Precio (MXN)</label>
+          <input type="number" id="pPrice" placeholder="45" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label for="pUnit">Presentación (opcional)</label>
+          <input type="text" id="pUnit" placeholder="Ej. 45 g">
+        </div>
+      </div>
+      <div class="field">
+        <label for="pDesc">Descripción</label>
+        <textarea id="pDesc" placeholder="Ingredientes, sabor, beneficios..."></textarea>
+      </div>
+      <div class="field">
+        <label for="pTheme">Tema de este producto (temporada)</label>
+        <select id="pTheme"></select>
+      </div>
+      <button class="primary" id="addBtn">Agregar producto</button>
+      <div class="status" id="formStatus"></div>
+    </div>
+
+    <div>
+      <div id="listWrap">
+        <div class="empty" id="emptyState">Todavía no agregas productos.<br>Usa el formulario para añadir el primero.</div>
+        <div class="cards" id="cards" style="display:none;"></div>
+      </div>
+
+      <div class="gen-bar">
+        <div class="count" id="countLabel"></div>
+        <button class="gen-btn" id="genBtn" disabled>Generar PDF</button>
+      </div>
+      <div class="status" id="genStatus"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const products = [];
+  let editIndex = null;
+  let currentPhoto = null; // dataURL
+
+  // ---------- Themes ----------
+  const THEMES = {
+    clasico: {
+      label: 'Moderno',
+      tag: 'Todo el año',
+      bg: '#F7F5EE', bgAlt: '#FFFFFF', ink: '#1B1D19', muted: '#726F63',
+      accent: '#D6FF3F', accentInk: '#2B2E1A', price: '#FF5A36', priceInk: '#FFFFFF',
+      pattern: 'dots', patternColor: '#1B1D19', patternOpacity: 0.06, dark: false
+    },
+    verano: {
+      label: 'Verano',
+      tag: 'Fresco y vibrante',
+      bg: '#FFF7E4', bgAlt: '#FFFFFF', ink: '#20342E', muted: '#6E7A72',
+      accent: '#00B8A9', accentInk: '#FFFFFF', price: '#FF6B35', priceInk: '#FFFFFF',
+      pattern: 'waves', patternColor: '#00B8A9', patternOpacity: 0.16, dark: false
+    },
+    navidad: {
+      label: 'Navidad',
+      tag: 'Invierno / fin de año',
+      bg: '#0F3D2E', bgAlt: '#FFFDF7', ink: '#FFFDF7', muted: '#C9DCCF',
+      accent: '#D4AF37', accentInk: '#2A210A', price: '#C8102E', priceInk: '#FFFFFF',
+      pattern: 'snow', patternColor: '#D4AF37', patternOpacity: 0.22, dark: true
+    },
+    muertos: {
+      label: 'Día de Muertos',
+      tag: 'Octubre / noviembre',
+      bg: '#2B1B3D', bgAlt: '#FFFAF2', ink: '#FFF6E9', muted: '#D9C7EA',
+      accent: '#FF8C1A', accentInk: '#2B1B3D', price: '#E4007C', priceInk: '#FFFFFF',
+      pattern: 'papel', patternColor: '#FF8C1A', patternOpacity: 0.25, dark: true
+    },
+    primavera: {
+      label: 'Primavera',
+      tag: 'Marzo / abril',
+      bg: '#FFF1F0', bgAlt: '#FFFFFF', ink: '#39312F', muted: '#8A7A76',
+      accent: '#FF6F91', accentInk: '#FFFFFF', price: '#4C9A6A', priceInk: '#FFFFFF',
+      pattern: 'floral', patternColor: '#FF6F91', patternOpacity: 0.18, dark: false
+    },
+    patrio: {
+      label: 'Fiestas Patrias',
+      tag: 'Septiembre',
+      bg: '#FFFFFF', bgAlt: '#F7F5EE', ink: '#1B1D19', muted: '#726F63',
+      accent: '#006341', accentInk: '#FFFFFF', price: '#CE1126', priceInk: '#FFFFFF',
+      pattern: 'stripes', patternColor: '#006341', patternOpacity: 0.10, dark: false
+    }
+  };
+
+  const STORAGE_KEY = 'catalogoProductosV1';
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        products,
+        biz: {
+          name: document.getElementById('bizName').value,
+          tag: document.getElementById('bizTag').value,
+          contact: document.getElementById('bizContact').value
+        },
+        currentThemeKey,
+        productsPerPage
+      }));
+    } catch (e) { /* localStorage no disponible: se sigue trabajando sin guardar */ }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  const savedState = loadState();
+  if (savedState && Array.isArray(savedState.products)) {
+    products.push(...savedState.products);
+  }
+  if (savedState && savedState.biz) {
+    document.getElementById('bizName').value = savedState.biz.name || '';
+    document.getElementById('bizTag').value = savedState.biz.tag || '';
+    document.getElementById('bizContact').value = savedState.biz.contact || '';
+  }
+
+  let currentThemeKey = (savedState && THEMES[savedState.currentThemeKey]) ? savedState.currentThemeKey : 'clasico';
+
+  function svgPattern(type, color) {
+    const templates = {
+      dots: `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><circle cx='4' cy='4' r='3' fill='${color}'/></svg>`,
+      waves: `<svg xmlns='http://www.w3.org/2000/svg' width='90' height='34'><path d='M0 20 Q22 4 45 20 T90 20' stroke='${color}' stroke-width='4' fill='none'/></svg>`,
+      snow: `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><g stroke='${color}' stroke-width='2.2'><line x1='32' y1='10' x2='32' y2='54'/><line x1='10' y1='32' x2='54' y2='32'/><line x1='17' y1='17' x2='47' y2='47'/><line x1='47' y1='17' x2='17' y2='47'/></g><circle cx='32' cy='32' r='2.5' fill='${color}'/></svg>`,
+      floral: `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><g fill='${color}'><circle cx='32' cy='20' r='6'/><circle cx='20' cy='36' r='6'/><circle cx='44' cy='36' r='6'/><circle cx='32' cy='48' r='6'/></g></svg>`,
+      papel: `<svg xmlns='http://www.w3.org/2000/svg' width='60' height='30'><path d='M0 0 H60 V13 Q45 30 30 13 Q15 30 0 13 Z' fill='${color}'/></svg>`,
+      stripes: `<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'><rect x='0' y='0' width='10' height='44' fill='${color}'/></svg>`
+    };
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(templates[type] || templates.dots);
+  }
+
+  function hexToRgba(hex, alpha) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function patternCss(theme) {
+    return `background-image:url("${svgPattern(theme.pattern, hexToRgba(theme.patternColor, theme.patternOpacity))}");background-repeat:repeat;`;
+  }
+
+  const themeGrid = document.getElementById('themeGrid');
+  Object.keys(THEMES).forEach(key => {
+    const t = THEMES[key];
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'theme-chip' + (key === currentThemeKey ? ' active' : '');
+    chip.dataset.theme = key;
+    chip.innerHTML = `
+      <div class="swatches">
+        <span style="background:${t.accent}"></span>
+        <span style="background:${t.price}"></span>
+        <span style="background:${t.bg};border:1px solid #ddd8c8"></span>
+      </div>
+      <div class="tname">${t.label}</div>
+      <div class="ttag">${t.tag}</div>`;
+    chip.addEventListener('click', () => {
+      currentThemeKey = key;
+      themeGrid.querySelectorAll('.theme-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      saveState();
+    });
+    themeGrid.appendChild(chip);
+  });
+
+  const pTheme = document.getElementById('pTheme');
+  Object.keys(THEMES).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = THEMES[key].label + ' · ' + THEMES[key].tag;
+    pTheme.appendChild(opt);
+  });
+
+  let productsPerPage = (savedState && (savedState.productsPerPage === 2 || savedState.productsPerPage === 4)) ? savedState.productsPerPage : 2;
+  const densitySeg = document.getElementById('densitySeg');
+  densitySeg.querySelectorAll('.seg-btn').forEach(btn => {
+    if (Number(btn.dataset.density) === productsPerPage) {
+      densitySeg.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    btn.addEventListener('click', () => {
+      productsPerPage = Number(btn.dataset.density);
+      densitySeg.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      saveState();
+    });
+  });
+
+  ['bizName', 'bizTag', 'bizContact'].forEach(id => {
+    document.getElementById(id).addEventListener('input', saveState);
+  });
+
+  const photoDrop = document.getElementById('photoDrop');
+  const photoInput = document.getElementById('photoInput');
+  const photoHint = document.getElementById('photoHint');
+  const pName = document.getElementById('pName');
+  const pPrice = document.getElementById('pPrice');
+  const pUnit = document.getElementById('pUnit');
+  const pDesc = document.getElementById('pDesc');
+  const addBtn = document.getElementById('addBtn');
+  const formStatus = document.getElementById('formStatus');
+  const formTitle = document.getElementById('formTitle');
+  const cardsEl = document.getElementById('cards');
+  const emptyState = document.getElementById('emptyState');
+  const countLabel = document.getElementById('countLabel');
+  const genBtn = document.getElementById('genBtn');
+  const genStatus = document.getElementById('genStatus');
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      currentPhoto = reader.result;
+      photoDrop.querySelectorAll('img').forEach(i => i.remove());
+      const img = document.createElement('img');
+      img.src = currentPhoto;
+      photoDrop.appendChild(img);
+      photoHint.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function resetForm() {
+    currentPhoto = null;
+    photoDrop.querySelectorAll('img').forEach(i => i.remove());
+    photoHint.style.display = 'block';
+    photoHint.textContent = 'Toca para subir una foto';
+    photoInput.value = '';
+    pName.value = '';
+    pPrice.value = '';
+    pUnit.value = '';
+    pDesc.value = '';
+    pTheme.value = currentThemeKey;
+    editIndex = null;
+    formTitle.textContent = 'Agregar producto';
+    addBtn.textContent = 'Agregar producto';
+  }
+
+  function money(n) {
+    const num = Number(n);
+    if (isNaN(num)) return '';
+    return '$' + num.toLocaleString('es-MX', { minimumFractionDigits: num % 1 === 0 ? 0 : 2 });
+  }
+
+  function render() {
+    if (products.length === 0) {
+      emptyState.style.display = 'block';
+      cardsEl.style.display = 'none';
+    } else {
+      emptyState.style.display = 'none';
+      cardsEl.style.display = 'grid';
+      cardsEl.innerHTML = '';
+      products.forEach((p, i) => {
+        const t = THEMES[p.themeKey] || THEMES.clasico;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.borderTopColor = t.accent;
+        card.innerHTML = `
+          <div class="thumb" style="background-image:url('${p.photo}')"></div>
+          <div class="body">
+            <div class="name">${escapeHtml(p.name)}</div>
+            <div class="price" style="color:${t.price}">${money(p.price)}${p.unit ? ' · ' + escapeHtml(p.unit) : ''}</div>
+            <div class="desc">${escapeHtml(p.desc)}</div>
+            <div class="theme-badge">${t.label}</div>
+            <div class="actions">
+              <button class="ghost" data-edit="${i}">Editar</button>
+              <button class="ghost" data-del="${i}">Eliminar</button>
+            </div>
+          </div>`;
+        cardsEl.appendChild(card);
+      });
+    }
+    countLabel.textContent = products.length === 0
+      ? 'Sin productos aún'
+      : products.length + (products.length === 1 ? ' producto agregado' : ' productos agregados');
+    genBtn.disabled = products.length === 0;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  addBtn.addEventListener('click', () => {
+    formStatus.textContent = '';
+    formStatus.className = 'status';
+    if (!currentPhoto) { formStatus.textContent = 'Agrega una foto del producto.'; formStatus.className = 'status err'; return; }
+    if (!pName.value.trim()) { formStatus.textContent = 'Escribe el nombre del producto.'; formStatus.className = 'status err'; return; }
+    if (pPrice.value === '' || isNaN(Number(pPrice.value))) { formStatus.textContent = 'Escribe un precio válido.'; formStatus.className = 'status err'; return; }
+
+    const entry = {
+      photo: currentPhoto,
+      name: pName.value.trim(),
+      price: pPrice.value,
+      unit: pUnit.value.trim(),
+      desc: pDesc.value.trim(),
+      themeKey: pTheme.value
+    };
+
+    if (editIndex !== null) {
+      products[editIndex] = entry;
+    } else {
+      products.push(entry);
+    }
+    resetForm();
+    render();
+  });
+
+  cardsEl.addEventListener('click', (e) => {
+    const delIdx = e.target.getAttribute('data-del');
+    const editIdx = e.target.getAttribute('data-edit');
+    if (delIdx !== null) {
+      products.splice(Number(delIdx), 1);
+      render();
+    } else if (editIdx !== null) {
+      const i = Number(editIdx);
+      const p = products[i];
+      currentPhoto = p.photo;
+      photoDrop.querySelectorAll('img').forEach(el => el.remove());
+      const img = document.createElement('img');
+      img.src = p.photo;
+      photoDrop.appendChild(img);
+      photoHint.style.display = 'none';
+      pName.value = p.name;
+      pPrice.value = p.price;
+      pUnit.value = p.unit;
+      pDesc.value = p.desc;
+      pTheme.value = p.themeKey || currentThemeKey;
+      editIndex = i;
+      formTitle.textContent = 'Editar producto';
+      addBtn.textContent = 'Guardar cambios';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  // ---------- PDF generation ----------
+  const PAGE_W = 794, PAGE_H = 1123; // A4 @ 96dpi
+
+  function buildCoverHtml(biz, theme) {
+    const t = theme;
+    return `
+      <div style="width:${PAGE_W}px;height:${PAGE_H}px;background:${t.bg};font-family:'Inter',sans-serif;position:relative;display:flex;flex-direction:column;">
+        <div style="padding:56px 64px 0;">
+          <div style="width:56px;height:10px;background:${t.accent};border-radius:3px;margin-bottom:24px;"></div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:44px;color:${t.ink};line-height:1.12;max-width:600px;">${escapeHtml(biz.name || 'Catálogo de productos')}</div>
+          ${biz.tag ? `<div style="font-size:17px;color:${t.muted};margin-top:14px;max-width:480px;">${escapeHtml(biz.tag)}</div>` : ''}
+        </div>
+        <div style="flex:1;margin:40px 64px;border-radius:18px;background:${t.bgAlt};${patternCss(t)}position:relative;overflow:hidden;">
+          <div style="position:absolute;right:-50px;bottom:-50px;width:280px;height:280px;border-radius:50%;background:${t.accent};"></div>
+          <div style="position:absolute;left:36px;top:36px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;color:${t.muted};">Catálogo de productos</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 64px 48px;">
+          <div style="font-size:13px;color:${t.muted};">${biz.contact ? escapeHtml(biz.contact) : ''}</div>
+          <div style="font-size:13px;color:${t.muted};">${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })}</div>
+        </div>
+      </div>`;
+  }
+
+  function productCard(p, t, compact) {
+    const bodyColor = t.dark ? t.bg : '#1B1D19';
+    const descColor = t.dark ? t.muted : '#3B3A34';
+    const photoH = compact ? 200 : 320;
+    const nameSize = compact ? 15 : 21;
+    const priceSize = compact ? 12.5 : 15;
+    const descSize = compact ? 10.5 : 12.5;
+    return `
+      <div style="display:flex;flex-direction:column;${compact ? 'height:100%;' : ''}">
+        <div style="height:${photoH}px;border-radius:12px;overflow:hidden;background:${hexToRgba(t.dark ? '#FFFFFF' : '#000000', 0.05)};">
+          <img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;display:block;">
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:${nameSize}px;color:${bodyColor};margin-top:${compact ? 10 : 18}px;">${escapeHtml(p.name)}</div>
+        <div style="margin-top:${compact ? 6 : 9}px;align-self:flex-start;background:${t.price};color:${t.priceInk};font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:${priceSize}px;padding:${compact ? '4px 9px' : '6px 13px'};border-radius:7px;">
+          ${money(p.price)}${p.unit ? ` <span style="font-size:${compact ? 9 : 11.5}px;font-weight:500;opacity:0.9;"> · ${escapeHtml(p.unit)}</span>` : ''}
+        </div>
+        <div style="margin-top:${compact ? 7 : 12}px;font-size:${descSize}px;line-height:1.55;color:${descColor};">${escapeHtml(p.desc)}</div>
+      </div>`;
+  }
+
+  function buildProductsPageHtml(items, biz, theme, pageIndex, totalPages, perPage) {
+    const t = theme;
+    const isGrid = perPage >= 4;
+    let bodyLayout;
+
+    if (isGrid) {
+      const cellBorder = hexToRgba(t.dark ? '#FFFFFF' : '#000000', 0.12);
+      const cellBg = hexToRgba(t.dark ? '#FFFFFF' : '#000000', 0.03);
+      const cells = items.map(p => `
+        <div style="background:${cellBg};border:1px solid ${cellBorder};border-radius:12px;padding:16px;">
+          ${productCard(p, t, true)}
+        </div>`).join('');
+      bodyLayout = `<div style="display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:18px;height:100%;position:relative;z-index:1;">${cells}</div>`;
+    } else {
+      const dividerColor = hexToRgba(t.dark ? '#FFFFFF' : '#000000', 0.14);
+      const cells = items.map((p, i) => `
+        <div style="flex:1;min-width:0;${i > 0 ? `padding-left:32px;border-left:1px solid ${dividerColor};` : ''}">
+          ${productCard(p, t, false)}
+        </div>`).join('');
+      bodyLayout = `<div style="display:flex;align-items:flex-start;position:relative;z-index:1;">${cells}</div>`;
+    }
+
+    return `
+      <div style="width:${PAGE_W}px;height:${PAGE_H}px;background:${t.bgAlt};font-family:'Inter',sans-serif;position:relative;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="height:64px;background:${t.accent};display:flex;align-items:center;justify-content:space-between;padding:0 48px;position:relative;z-index:1;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:${t.accentInk};">${escapeHtml(biz.name || 'Catálogo')}</div>
+          <div style="font-size:12px;color:${t.accentInk};opacity:0.85;">Página ${pageIndex} de ${totalPages}</div>
+        </div>
+        <div style="flex:1;padding:36px 44px;position:relative;${patternCss(t)}">
+          ${bodyLayout}
+          <div style="position:absolute;right:-70px;bottom:-70px;width:220px;height:220px;border-radius:50%;background:${hexToRgba(t.accent, t.dark ? 0.22 : 0.14)};"></div>
+        </div>
+      </div>`;
+  }
+
+  function groupProductsForPdf(items, perPage) {
+    const order = [];
+    const byTheme = {};
+    items.forEach(p => {
+      const key = p.themeKey || 'clasico';
+      if (!byTheme[key]) {
+        byTheme[key] = [];
+        order.push(key);
+      }
+      byTheme[key].push(p);
+    });
+
+    const pages = [];
+    order.forEach(key => {
+      const group = byTheme[key];
+      for (let i = 0; i < group.length; i += perPage) {
+        pages.push({ items: group.slice(i, i + perPage), themeKey: key });
+      }
+    });
+    return pages;
+  }
+
+  async function renderPageToCanvas(html) {
+    const holder = document.createElement('div');
+    holder.style.position = 'fixed';
+    holder.style.left = '-99999px';
+    holder.style.top = '0';
+    holder.innerHTML = html;
+    document.body.appendChild(holder);
+    await new Promise(r => setTimeout(r, 60));
+    const canvas = await html2canvas(holder.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    document.body.removeChild(holder);
+    return canvas;
+  }
+
+  genBtn.addEventListener('click', async () => {
+    if (products.length === 0) return;
+    genBtn.disabled = true;
+    genStatus.className = 'status';
+    genStatus.textContent = 'Generando PDF...';
+
+    try {
+      const biz = {
+        name: document.getElementById('bizName').value.trim(),
+        tag: document.getElementById('bizTag').value.trim(),
+        contact: document.getElementById('bizContact').value.trim()
+      };
+      const coverTheme = THEMES[currentThemeKey];
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'px', format: [PAGE_W, PAGE_H], compress: true });
+
+      const coverCanvas = await renderPageToCanvas(buildCoverHtml(biz, coverTheme));
+      doc.addImage(coverCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, PAGE_W, PAGE_H);
+
+      const pages = groupProductsForPdf(products, productsPerPage);
+      for (let i = 0; i < pages.length; i++) {
+        doc.addPage([PAGE_W, PAGE_H]);
+        const pageTheme = THEMES[pages[i].themeKey] || coverTheme;
+        const canvas = await renderPageToCanvas(buildProductsPageHtml(pages[i].items, biz, pageTheme, i + 1, pages.length, productsPerPage));
+        doc.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, PAGE_W, PAGE_H);
+      }
+
+      const blob = doc.output('blob');
+      const filename = (biz.name ? biz.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() : 'catalogo') + '-productos.pdf';
+
+      const downloads = await (window.claude && window.claude.use ? window.claude.use('downloads') : Promise.resolve(null));
+      if (downloads) {
+        try {
+          const result = await downloads.save({ filename, data: blob });
+          genStatus.textContent = result.status === 'saved' ? 'PDF descargado correctamente.' : 'PDF enviado.';
+        } catch (err) {
+          if (err && err.code === 'declined') {
+            genStatus.textContent = 'Descarga cancelada.';
+          } else {
+            genStatus.textContent = 'No se pudo guardar el archivo. Intenta de nuevo.';
+            genStatus.className = 'status err';
+          }
+        }
+      } else {
+        doc.save(filename);
+        genStatus.textContent = 'PDF generado.';
+      }
+    } catch (err) {
+      console.error(err);
+      genStatus.textContent = 'Ocurrió un error generando el PDF. Intenta de nuevo.';
+      genStatus.className = 'status err';
+    } finally {
+      genBtn.disabled = products.length === 0;
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
