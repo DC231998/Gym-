@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102a43">
+<title>Mi Negocio 3D</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><b>⬡ Mi Negocio 3D</b><small>Bambu Lab P1S</small></div>
+  <nav id="nav">
+    <button data-view="dashboard">📊 Dashboard</button>
+    <button data-view="filaments">🧵 Filamentos</button>
+    <button data-view="catalog">📦 Catálogo</button>
+    <button data-view="pdf-catalog">📄 Catálogo PDF</button>
+    <button data-view="sales">💰 Ventas</button>
+    <button data-view="orders">📝 Pedidos</button>
+    <button data-view="production">🖨️ Producción</button>
+    <button data-view="expenses">💸 Gastos</button>
+    <button data-view="stats">📈 Estadísticas</button>
+    <button data-view="settings">⚙️ Configuración</button>
+  </nav>
+  <div id="connection">● Modo local</div>
+</aside>
+
+<main>
+<header>
+  <button id="menu">☰</button>
+  <div><h1 id="title">Dashboard</h1><p id="subtitle">Resumen de tu negocio</p></div>
+  <button id="theme">◐</button>
+</header>
+<section id="content"></section>
+</main>
+
+<div id="modal" class="hidden">
+  <div class="modalbox">
+    <div class="modalhead"><h2 id="mtitle"></h2><button id="close">×</button></div>
+    <div id="mbody"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script type="module" src="app.js"></script>
+<script type="module" src="catalog-pdf.js"></script>
+</body>
+</html>
