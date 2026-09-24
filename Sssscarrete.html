@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carrete — Precios y ventas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#EDEFE7;
+    --bg-dot: rgba(20,26,22,0.07);
+    --surface:#FFFFFF;
+    --surface-soft:#F5F6F1;
+    --ink:#161A17;
+    --ink-soft:#5C665F;
+    --ink-faint:#8B958D;
+    --line:#D9DED3;
+    --line-strong:#C3CBBC;
+    --accent:#FF5A1F;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#FFE7DB;
+    --accent2:#1F7A5C;
+    --accent2-soft:#DCEFE6;
+    --danger:#C0392B;
+    --danger-soft:#FBE4E1;
+    --radius:10px;
+    --radius-sm:6px;
+    --shadow:0 1px 2px rgba(20,26,22,0.05);
+    --font-head:'Space Grotesk',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      color-scheme: dark;
+      --bg:#121513;
+      --bg-dot: rgba(255,255,255,0.05);
+      --surface:#1B1F1C;
+      --surface-soft:#20241F;
+      --ink:#EAEDE7;
+      --ink-soft:#A7B0A5;
+      --ink-faint:#6E766D;
+      --line:#2B322C;
+      --line-strong:#3A4239;
+      --accent:#FF6B33;
+      --accent-ink:#161A17;
+      --accent-soft:#3A2317;
+      --accent2:#3FAE84;
+      --accent2-soft:#173028;
+      --danger:#FF6259;
+      --danger-soft:#3A1917;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#121513;
+    --bg-dot: rgba(255,255,255,0.05);
+    --surface:#1B1F1C;
+    --surface-soft:#20241F;
+    --ink:#EAEDE7;
+    --ink-soft:#A7B0A5;
+    --ink-faint:#6E766D;
+    --line:#2B322C;
+    --line-strong:#3A4239;
+    --accent:#FF6B33;
+    --accent-ink:#161A17;
+    --accent-soft:#3A2317;
+    --accent2:#3FAE84;
+    --accent2-soft:#173028;
+    --danger:#FF6259;
+    --danger-soft:#3A1917;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(var(--bg-dot) 1px, transparent 1px) 0 0/22px 22px,
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  h1,h2,h3,.brand,.tab-label,.stat-label,label,.section-title{font-family:var(--font-head);}
+  .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+  a{color:inherit;}
+  button{font-family:var(--font-body);}
+  input,select,textarea{font-family:var(--font-body);}
+
+  #app{max-width:960px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;}
+
+  header.topbar{
+    position:sticky;top:0;z-index:20;
+    padding-top:calc(14px + env(safe-area-inset-top,0px));
+    background:linear-gradient(var(--bg) 70%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  .brand-row{display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px;}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:20px;letter-spacing:-0.01em;}
+  .brand .spool{width:26px;height:26px;flex:none;}
+  .brand small{display:block;font-family:var(--font-body);font-weight:500;font-size:11.5px;color:var(--ink-soft);letter-spacing:0;margin-top:1px;}
+  .theme-toggle{
+    border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);
+    width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .theme-toggle svg{width:16px;height:16px;}
+
+  nav.tabs{
+    display:flex;gap:4px;overflow-x:auto;padding:0 12px 10px;scrollbar-width:none;
+  }
+  nav.tabs::-webkit-scrollbar{display:none;}
+  .tab-btn{
+    flex:none;display:flex;align-items:center;gap:7px;padding:9px 13px;
+    border:1px solid transparent;border-radius:999px;background:transparent;color:var(--ink-soft);
+    cursor:pointer;font-size:13.5px;font-weight:600;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;
+  }
+  .tab-btn svg{width:16px;height:16px;flex:none;}
+  .tab-btn:hover{background:var(--surface-soft);}
+  .tab-btn.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  :root[data-theme="dark"] .tab-btn.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tab-btn.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}}
+
+  main{flex:1;padding:6px 16px 90px;}
+  .view{display:none;animation:fade .18s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+
+  .view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:14px 0 14px;flex-wrap:wrap;}
+  .view-head h1{margin:0;font-size:21px;letter-spacing:-0.01em;}
+  .view-head p{margin:3px 0 0;color:var(--ink-soft);font-size:13.5px;max-width:46ch;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;margin-bottom:12px;box-shadow:var(--shadow);
+  }
+  .card h2{margin:0 0 3px;font-size:15px;}
+  .card .hint{color:var(--ink-faint);font-size:12.5px;margin:0 0 14px;}
+
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;letter-spacing:0.01em;}
+  .field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);
+    background:var(--surface);color:var(--ink);font-size:14.5px;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .field textarea{resize:vertical;min-height:58px;}
+  .field .suffix-wrap{position:relative;}
+  .field .suffix-wrap input{padding-right:44px;}
+  .field .suffix{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:12.5px;font-family:var(--font-mono);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media (max-width:420px){.row3{grid-template-columns:1fr 1fr;}}
+  input[type=color]{width:44px;height:38px;padding:2px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;}
+
+  .btn{
+    appearance:none;border:none;border-radius:var(--radius-sm);padding:10px 16px;font-weight:600;font-size:13.5px;
+    cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:transform .08s, opacity .15s;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--accent);color:var(--accent-ink);}
+  .btn-primary:disabled{opacity:0.5;cursor:default;}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line-strong);}
+  .btn-ghost:hover{background:var(--surface-soft);}
+  .btn-danger-ghost{background:transparent;color:var(--danger);border:1px solid var(--danger);}
+  .btn-sm{padding:6px 10px;font-size:12.5px;}
+  .btn-icon{padding:7px;border-radius:50%;background:transparent;border:1px solid var(--line-strong);color:var(--ink-soft);}
+  .btn-icon:hover{background:var(--surface-soft);}
+  .btn-icon svg{width:14px;height:14px;display:block;}
+  .btn svg{width:15px;height:15px;}
+
+  .list{display:flex;flex-direction:column;gap:8px;}
+  .item{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 13px;display:flex;align-items:center;gap:12px;
+  }
+  .swatch{width:30px;height:30px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,0.15);}
+  .item-main{flex:1;min-width:0;}
+  .item-title{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:8px;}
+  .item-sub{color:var(--ink-soft);font-size:12.5px;margin-top:2px;display:flex;flex-wrap:wrap;gap:x;gap:8px;}
+  .item-sub b{color:var(--ink);font-family:var(--font-mono);font-weight:600;}
+  .item-actions{display:flex;gap:6px;flex:none;}
+  .thumb{width:44px;height:44px;border-radius:var(--radius-sm);object-fit:cover;flex:none;border:1px solid var(--line);background:var(--surface-soft);}
+  .thumb-empty{width:44px;height:44px;border-radius:var(--radius-sm);flex:none;border:1px dashed var(--line-strong);background:var(--surface-soft);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);}
+  .thumb-empty svg{width:18px;height:18px;}
+
+  .pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;}
+  .pill-pendiente{background:var(--accent-soft);color:#B5401A;}
+  .pill-proceso{background:#FFF3C4;color:#8A6B00;}
+  .pill-listo{background:var(--accent2-soft);color:var(--accent2);}
+  :root[data-theme="dark"] .pill-pendiente{color:#FFB088;}
+  :root[data-theme="dark"] .pill-proceso{color:#F4DA8E;}
+
+  .empty{
+    text-align:center;padding:40px 20px;color:var(--ink-soft);border:1px dashed var(--line-strong);border-radius:var(--radius);
+  }
+  .empty svg{width:34px;height:34px;color:var(--ink-faint);margin-bottom:10px;}
+  .empty p{margin:0;font-size:13.5px;max-width:32ch;margin-inline:auto;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;}
+  @media (min-width:560px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
+  .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px;}
+  .stat-label{font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:none;margin:0 0 6px;}
+  .stat-value{font-family:var(--font-mono);font-size:19px;font-weight:600;letter-spacing:-0.01em;}
+  .stat-value.pos{color:var(--accent2);}
+  .stat-value.neg{color:var(--danger);}
+
+  .divider{height:1px;background:var(--line);margin:14px 0;}
+  .calc-box{background:var(--surface-soft);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 13px;margin-top:4px;}
+  .calc-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+  .calc-row span:first-child{color:var(--ink-soft);}
+  .calc-row span:last-child{font-family:var(--font-mono);font-weight:600;}
+  .calc-row.total{border-top:1px solid var(--line-strong);margin-top:5px;padding-top:7px;font-size:14.5px;}
+  .calc-row.total span:last-child{color:var(--accent2);}
+
+  .usos-list{display:flex;flex-direction:column;gap:7px;margin-bottom:9px;}
+  .uso-row{display:flex;gap:8px;align-items:center;}
+  .uso-row select{flex:1;}
+  .uso-row input{width:88px;}
+
+  .chart-wrap{position:relative;height:220px;margin-top:6px;}
+  .chart-wrap.small{height:170px;}
+
+  .rank-list{display:flex;flex-direction:column;gap:9px;}
+  .rank-row{display:flex;align-items:center;gap:10px;}
+  .rank-num{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);width:16px;flex:none;}
+  .rank-bar-wrap{flex:1;background:var(--surface-soft);border-radius:4px;overflow:hidden;height:26px;position:relative;}
+  .rank-bar{height:100%;background:var(--accent2);border-radius:4px;display:flex;align-items:center;}
+  .rank-name{position:absolute;left:9px;top:0;height:100%;display:flex;align-items:center;font-size:12.5px;font-weight:600;color:var(--ink);}
+  .rank-val{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-soft);width:64px;text-align:right;flex:none;}
+
+  .split-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;}
+  @media (max-width:420px){.split-grid{grid-template-columns:1fr;}}
+  .split-card{background:var(--surface-soft);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 12px;}
+  .split-card .k{font-size:11.5px;color:var(--ink-soft);font-weight:600;}
+  .split-card .v{font-family:var(--font-mono);font-weight:600;font-size:15px;margin-top:3px;}
+
+  .toast-container{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:60;pointer-events:none;}
+  .toast{background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,0.18);}
+  :root[data-theme="dark"] .toast{background:var(--accent);color:var(--accent-ink);}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{background:var(--accent);color:var(--accent-ink);}}
+
+  .banner{display:flex;align-items:flex-start;gap:9px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 12px;font-size:12.5px;color:var(--ink);margin-bottom:14px;}
+  .banner svg{width:16px;height:16px;flex:none;margin-top:1px;color:var(--accent);}
+
+  .photo-drop{
+    border:1px dashed var(--line-strong);border-radius:var(--radius-sm);background:var(--surface-soft);
+    display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer;
+  }
+  .photo-drop img{width:56px;height:56px;object-fit:cover;border-radius:6px;flex:none;background:var(--surface);}
+  .photo-drop .ph{width:56px;height:56px;border-radius:6px;flex:none;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);}
+  .photo-drop .ph svg{width:22px;height:22px;}
+  .photo-drop .txt{font-size:12.5px;color:var(--ink-soft);}
+  .photo-drop .txt b{color:var(--ink);display:block;font-size:13px;font-weight:600;margin-bottom:1px;}
+
+  select#formVelocidad{cursor:pointer;}
+  .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+
+  .footer-note{text-align:center;color:var(--ink-faint);font-size:11.5px;padding:18px 10px 4px;}
+
+  /* ---- Colores disponibles (checklist en el formulario) ---- */
+  .colores-check-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .color-check{display:flex;align-items:center;gap:6px;border:1px solid var(--line-strong);border-radius:999px;padding:6px 11px 6px 7px;font-size:12.5px;cursor:pointer;user-select:none;background:var(--surface);}
+  .color-check input{margin:0;}
+  .color-check .dot{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,0.15);flex:none;}
+
+  /* ---- Vista de catálogo (agrupado por colección) ---- */
+  .cat-page{border-radius:16px;padding:18px 16px 22px;margin-bottom:18px;background:var(--catbg);color:var(--catfg);}
+  .cat-page-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .cat-emoji{font-size:21px;line-height:1;}
+  .cat-page-head h2{margin:0;font-size:17px;letter-spacing:-0.01em;font-family:var(--font-head);flex:1;}
+  .cat-page-count{font-family:var(--font-mono);font-size:11px;opacity:0.75;}
+  .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  @media (min-width:640px){.cat-grid{grid-template-columns:repeat(3,1fr);}}
+  .cat-card{background:rgba(255,255,255,0.96);color:#181A17;border-radius:11px;overflow:hidden;display:flex;flex-direction:column;}
+  .cat-card-photo{aspect-ratio:1;background:#E9ECE5;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .cat-card-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cat-card-noph{color:#B7BEAF;}
+  .cat-card-noph svg{width:26px;height:26px;}
+  .cat-card-body{padding:9px 10px 11px;}
+  .cat-card-name{font-weight:700;font-size:12.5px;font-family:var(--font-head);line-height:1.25;}
+  .cat-card-cat{font-size:10.5px;color:#767F73;margin-top:1px;}
+  .cat-card-price{font-family:var(--font-mono);font-weight:700;font-size:13px;margin-top:6px;}
+  .cat-card-colors{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap;}
+  .cat-card-colors .dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,0.18);}
+
+  @media print{
+    header.topbar, #catVisualControls, .footer-note, .toast-container, .view-head{display:none !important;}
+    body{background:#fff;padding:0;}
+    main{padding:0;}
+    #app{max-width:none;}
+    .cat-page{page-break-after:always;border-radius:0;margin:0;padding:14mm 10mm;}
+    .cat-page:last-child{page-break-after:auto;}
+    .cat-card{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand-row">
+      <div class="brand">
+        <svg class="spool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke-opacity=".55"/></svg>
+        <div><span>Carrete</span><small>Precios y ventas de impresión 3D</small></div>
+      </div>
+      <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema" title="Cambiar tema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4.2"/></svg>
+      </button>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </header>
+
+  <main id="content"></main>
+  <p class="footer-note">Tus datos se guardan automáticamente.</p>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ============================== ICONOS ============================== */
+const ICONS = {
+  filamentos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="4"/></svg>',
+  catalogo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  ventas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7l1.6 10.6A2 2 0 0 0 6.6 19.4h10.8a2 2 0 0 0 2-1.8L21 7"/><path d="M3 7h18"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>',
+  pedidos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8.5 11h7M8.5 15h5"/></svg>',
+  estadisticas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+  config:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.36a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.64a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.36 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>',
+  photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5.5-5.5L4 19"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 8v.01"/></svg>',
+  galeria:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>',
+  printer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><rect x="7" y="14" width="10" height="7"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+};
+
+/* ============================== ESTADO ============================== */
+const STORE_UNAVAILABLE_MSG = "No se pudo conectar el almacenamiento en la nube: lo que captures ahora podría perderse al recargar la página.";
+let db=null, assets=null, dbReady=false, assetsReady=false;
+let filaments=[], products=[], sales=[], orders=[];
+let config = { watts:{silencioso:90, estandar:120, deportivo:150, ludicrous:190}, tarifaKwh:0, pctUtilidad:50, pctInversion:30, pctCostos:20 };
+let currentTab = 'filamentos';
+let charts = {};
+
+const TABS = [
+  {id:'filamentos', label:'Filamentos', icon:'filamentos'},
+  {id:'catalogo', label:'Catálogo', icon:'catalogo'},
+  {id:'catalogo-visual', label:'Vista catálogo', icon:'galeria'},
+  {id:'ventas', label:'Ventas', icon:'ventas'},
+  {id:'pedidos', label:'Pedidos', icon:'pedidos'},
+  {id:'estadisticas', label:'Estadísticas', icon:'estadisticas'},
+  {id:'config', label:'Configuración', icon:'config'},
+];
+
+const VEL_LABELS = {silencioso:'Silencioso', estandar:'Estándar', deportivo:'Deportivo', ludicrous:'Ludicrous'};
+
+const COLECCIONES = [
+  {id:'todo_anio', label:'Todo el año', emoji:'📦', bg:'#152A52', fg:'#FFFFFF', accent:'#6FA8FF'},
+  {id:'navidad', label:'Navidad', emoji:'🎁', bg:'#7A1620', fg:'#FFFFFF', accent:'#E7B44A'},
+  {id:'halloween', label:'Halloween', emoji:'🎃', bg:'#2B1338', fg:'#FFFFFF', accent:'#FF8A3D'},
+  {id:'primavera', label:'Primavera', emoji:'🌸', bg:'#E8F5DF', fg:'#22391D', accent:'#D6558A'},
+  {id:'verano', label:'Verano', emoji:'☀️', bg:'#0E7CA8', fg:'#FFFFFF', accent:'#FFD874'},
+  {id:'otono', label:'Otoño', emoji:'🍂', bg:'#7A3B12', fg:'#FFFFFF', accent:'#F2A03D'},
+  {id:'accesorios', label:'Accesorios y utilitarios', emoji:'🧰', bg:'#1E2530', fg:'#FFFFFF', accent:'#7FB3D5'},
+  {id:'personalizados', label:'Personalizados', emoji:'⭐', bg:'#111315', fg:'#FFFFFF', accent:'#FF5A1F'},
+];
+const CATEGORIAS_PRODUCTO = ['Decoración','Regalos','Accesorios','Oficina','Hogar','Utilidad','Personalizados'];
+function coleccionOf(id){ return COLECCIONES.find(c=>c.id===id) || COLECCIONES[0]; }
+
+/* ============================== UTILS ============================== */
+function fmtMXN(n){
+  if(!isFinite(n)) n=0;
+  return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
+}
+function fmtNum(n,d=2){ if(!isFinite(n)) n=0; return n.toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2200);
+}
+function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function monthLabel(iso){
+  if(!iso) return 'Sin fecha';
+  const d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return 'Sin fecha';
+  return d.toLocaleDateString('es-MX',{month:'short', year:'2-digit'});
+}
+
+/* ============================== CÁLCULOS ============================== */
+function costoPorGramo(f){ return f && f.gramosPaquete > 0 ? f.costoPaquete / f.gramosPaquete : 0; }
+
+function wattsFor(product){
+  if(product.watts!=null && product.watts!=='') return Number(product.watts);
+  return (config.watts && config.watts[product.velocidad]) || 120;
+}
+
+function computeProductCost(product){
+  let costoMaterial = 0;
+  (product.usos||[]).forEach(u=>{
+    const f = filaments.find(x=>x.id===u.filamentId);
+    if(f) costoMaterial += (Number(u.gramos)||0) * costoPorGramo(f);
+  });
+  const watts = wattsFor(product);
+  const horas = Number(product.horas)||0;
+  const costoEnergia = (watts/1000) * horas * (Number(config.tarifaKwh)||0);
+  return { costoMaterial, costoEnergia, costoFabricacion: costoMaterial + costoEnergia, watts };
+}
+
+/* ============================== INIT CAPABILITIES ============================== */
+async function initCapabilities(){
+  try{
+    db = await window.claude?.use?.('db') ?? null;
+  }catch(e){ db = null; }
+  if(!db){ showBanner(STORE_UNAVAILABLE_MSG); }
+  dbReady = !!db;
+
+  try{
+    assets = await window.claude?.use?.('assets') ?? null;
+  }catch(e){ assets = null; }
+  assetsReady = !!assets;
+
+  if(db){
+    subscribeCollection('filaments', (docs)=>{ filaments = docs; if(['filamentos','catalogo','estadisticas'].includes(currentTab)) render(); });
+    subscribeCollection('products', (docs)=>{ products = docs; if(['catalogo','ventas','estadisticas'].includes(currentTab)) render(); });
+    subscribeCollection('sales', (docs)=>{ sales = docs.sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'') || (b.createdAt||0)-(a.createdAt||0)); if(['ventas','estadisticas'].includes(currentTab)) render(); });
+    subscribeCollection('orders', (docs)=>{ orders = docs; if(currentTab==='pedidos') render(); });
+    try{
+      db.doc('config/settings').onSnapshot(snap=>{
+        if(snap.exists){
+          const d = snap.data();
+          config = {
+            watts: Object.assign({silencioso:90, estandar:120, deportivo:150, ludicrous:190}, d.watts||{}),
+            tarifaKwh: d.tarifaKwh ?? 0,
+            pctUtilidad: d.pctUtilidad ?? 50,
+            pctInversion: d.pctInversion ?? 30,
+            pctCostos: d.pctCostos ?? 20,
+          };
+        }
+        if(currentTab==='config' || currentTab==='catalogo' || currentTab==='estadisticas') render();
+      }, ()=>{});
+    }catch(e){}
+  }
+  render();
+}
+
+function subscribeCollection(name, cb){
+  try{
+    db.collection(name).onSnapshot(snap=>{
+      const docs = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+      cb(docs);
+    }, (err)=>{ console.error(name, err); });
+  }catch(e){ console.error(e); }
+}
+
+function showBanner(msg){
+  const el = document.getElementById('content');
+  if(!el) return;
+  const b = document.createElement('div');
+  b.className='banner';
+  b.innerHTML = ICONS.info + '<span>'+esc(msg)+'</span>';
+  el.prepend(b);
+}
+
+/* ============================== NAV ============================== */
+function renderNav(){
+  const nav = document.getElementById('tabs');
+  nav.innerHTML = TABS.map(t=>
+    `<button class="tab-btn ${t.id===currentTab?'active':''}" data-tab="${t.id}">${ICONS[t.icon]}<span class="tab-label">${t.label}</span></button>`
+  ).join('');
+  nav.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{ currentTab = b.dataset.tab; render(); });
+  });
+}
+
+function render(){
+  renderNav();
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  if(!dbReady) showBanner(STORE_UNAVAILABLE_MSG);
+  const wrap = document.createElement('div');
+  wrap.className='view active';
+  content.appendChild(wrap);
+  if(currentTab==='filamentos') renderFilamentos(wrap);
+  else if(currentTab==='catalogo') renderCatalogo(wrap);
+  else if(currentTab==='catalogo-visual') renderCatalogoVisual(wrap);
+  else if(currentTab==='ventas') renderVentas(wrap);
+  else if(currentTab==='pedidos') renderPedidos(wrap);
+  else if(currentTab==='estadisticas') renderEstadisticas(wrap);
+  else if(currentTab==='config') renderConfig(wrap);
+}
+
+/* ============================== FILAMENTOS ============================== */
+function renderFilamentos(root){
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Filamentos</h1><p>Registra cada rollo y su color. Calculamos el costo por gramo automáticamente.</p></div>
+    </div>
+    <div class="card">
+      <h2>Agregar filamento</h2>
+      <p class="hint">El costo por gramo se usa después en el catálogo para calcular el costo de fabricación.</p>
+      <form id="formFilamento">
+        <div class="row2">
+          <div class="field"><label for="fNombre">Nombre / color</label><input required id="fNombre" type="text" placeholder="Ej. PLA Rojo Bambú"></div>
+          <div class="field"><label for="fColor">Color</label><input id="fColor" type="color" value="#FF5A1F"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="fGramos">Gramos del rollo</label><div class="suffix-wrap"><input required id="fGramos" type="number" min="1" step="1" placeholder="1000"><span class="suffix">g</span></div></div>
+          <div class="field"><label for="fCosto">Costo del rollo</label><div class="suffix-wrap"><input required id="fCosto" type="number" min="0" step="0.01" placeholder="380"><span class="suffix">MXN</span></div></div>
+        </div>
+        <button class="btn btn-primary" type="submit">${ICONS.plus}Agregar filamento</button>
+      </form>
+    </div>
+    <div id="filamentList"></div>
+  `;
+  document.getElementById('formFilamento').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const nombre = document.getElementById('fNombre').value.trim();
+    const color = document.getElementById('fColor').value;
+    const gramosPaquete = Number(document.getElementById('fGramos').value);
+    const costoPaquete = Number(document.getElementById('fCosto').value);
+    if(!nombre || !gramosPaquete || costoPaquete<0) return;
+    const data = { nombre, colorHex:color, gramosPaquete, costoPaquete, createdAt: Date.now() };
+    if(db){
+      try{ await db.collection('filaments').add(data); toast('Filamento agregado'); }
+      catch(err){ toast('No se pudo guardar'); }
+    }else{
+      filaments.push(Object.assign({id:uid()}, data)); toast('Filamento agregado (sin guardar en la nube)'); render();
+    }
+    e.target.reset();
+    document.getElementById('fColor').value='#FF5A1F';
+  });
+  renderFilamentList();
+}
+
+function renderFilamentList(){
+  const el = document.getElementById('filamentList');
+  if(!el) return;
+  if(filaments.length===0){
+    el.innerHTML = `<div class="empty">${ICONS.filamentos}<p>Aún no tienes filamentos registrados. Agrega el primero arriba para empezar a calcular costos.</p></div>`;
+    return;
+  }
+  const sorted = [...filaments].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+  el.innerHTML = `<div class="list">${sorted.map(f=>{
+    const cpg = costoPorGramo(f);
+    return `<div class="item">
+      <div class="swatch" style="background:${esc(f.colorHex||'#ccc')}"></div>
+      <div class="item-main">
+        <div class="item-title">${esc(f.nombre)}</div>
+        <div class="item-sub">${fmtNum(f.gramosPaquete,0)} g · ${fmtMXN(f.costoPaquete)} · <b>${fmtMXN(cpg)}/g</b></div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-icon" data-edit-fil="${f.id}" title="Editar">${ICONS.edit}</button>
+        <button class="btn-icon" data-del-fil="${f.id}" title="Eliminar">${ICONS.trash}</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+  el.querySelectorAll('[data-del-fil]').forEach(b=>b.addEventListener('click', ()=>deleteFilament(b.dataset.delFil)));
+  el.querySelectorAll('[data-edit-fil]').forEach(b=>b.addEventListener('click', ()=>editFilamentPrompt(b.dataset.editFil)));
+}
+
+async function deleteFilament(id){
+  if(!confirm('¿Eliminar este filamento? Los productos que lo usan quedarán con ese material sin calcular.')) return;
+  if(db){ try{ await db.doc('filaments/'+id).delete(); toast('Filamento eliminado'); }catch(e){ toast('No se pudo eliminar'); } }
+  else{ filaments = filaments.filter(f=>f.id!==id); render(); }
+}
+
+function editFilamentPrompt(id){
+  const f = filaments.find(x=>x.id===id);
+  if(!f) return;
+  const nombre = prompt('Nombre / color:', f.nombre);
+  if(nombre===null) return;
+  const gramos = prompt('Gramos del rollo:', f.gramosPaquete);
+  if(gramos===null) return;
+  const costo = prompt('Costo del rollo (MXN):', f.costoPaquete);
+  if(costo===null) return;
+  const data = { nombre: nombre.trim()||f.nombre, gramosPaquete: Number(gramos)||f.gramosPaquete, costoPaquete: Number(costo) };
+  if(db){ db.doc('filaments/'+id).update(data).then(()=>toast('Filamento actualizado')).catch(()=>toast('No se pudo actualizar')); }
+  else{ Object.assign(f, data); render(); }
+}
+
+/* ============================== CATÁLOGO ============================== */
+let pendingPhotoAssetId = null;
+let pendingPhotoPreview = null;
+let editingProductId = null;
+
+function renderCatalogo(root){
+  editingProductId = null;
+  pendingPhotoAssetId = null;
+  pendingPhotoPreview = null;
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Catálogo</h1><p>Cada producto calcula su costo de fabricación con el material y la luz que consume.</p></div>
+    </div>
+    <div class="card" id="productFormCard">${productFormHTML()}</div>
+    <div id="productList"></div>
+  `;
+  wireProductForm();
+  renderProductList();
+}
+
+function productFormHTML(p){
+  p = p || { nombre:'', usos:[{filamentId:'', gramos:''}], horas:'', velocidad:'estandar', watts:'', precioVenta:'', notas:'', coleccion:'todo_anio', categoria:'Decoración', coloresDisponibles:[] };
+  const filOptions = (selId)=> filaments.length
+    ? filaments.map(f=>`<option value="${f.id}" ${f.id===selId?'selected':''}>${esc(f.nombre)} — ${fmtMXN(costoPorGramo(f))}/g</option>`).join('')
+    : '<option value="">Sin filamentos registrados</option>';
+  return `
+    <h2>${editingProductId? 'Editar producto' : 'Agregar producto'}</h2>
+    <p class="hint">Sube una foto, elige los filamentos que usa y cuántos gramos gasta de cada uno.</p>
+    <form id="formProducto">
+      <div class="field">
+        <label>Foto del producto</label>
+        <div class="photo-drop" id="photoDrop">
+          ${pendingPhotoPreview ? `<img src="${pendingPhotoPreview}" alt="">` : `<div class="ph">${ICONS.photo}</div>`}
+          <div class="txt"><b>${assetsReady? (pendingPhotoPreview? 'Cambiar foto' : 'Subir foto') : 'Fotos no disponibles'}</b>${assetsReady? 'Se comprime automáticamente para ocupar poco espacio' : 'Este espacio no admite guardar imágenes ahora mismo'}</div>
+        </div>
+        <input type="file" accept="image/*" id="photoInput" class="visually-hidden" ${assetsReady? '' : 'disabled'}>
+      </div>
+      <div class="field"><label for="pNombre">Nombre del producto</label><input required id="pNombre" type="text" placeholder="Ej. Maceta hexagonal M" value="${esc(p.nombre)}"></div>
+
+      <div class="field">
+        <label>Filamentos usados</label>
+        <div class="usos-list" id="usosList"></div>
+        <button type="button" class="btn btn-ghost btn-sm" id="addUso">${ICONS.plus}Agregar filamento</button>
+      </div>
+
+      <div class="row2">
+        <div class="field"><label for="pHoras">Tiempo de impresión</label><div class="suffix-wrap"><input required id="pHoras" type="number" min="0" step="0.1" placeholder="3.5" value="${p.horas}"><span class="suffix">horas</span></div></div>
+        <div class="field"><label for="pVelocidad">Velocidad (Bambu Lab P1S)</label><select id="pVelocidad">
+          ${Object.entries(VEL_LABELS).map(([k,v])=>`<option value="${k}" ${p.velocidad===k?'selected':''}>${v} · ${config.watts[k]||''} W aprox.</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="field"><label for="pWatts">Consumo estimado (opcional, sobrescribe el de la velocidad)</label><div class="suffix-wrap"><input id="pWatts" type="number" min="0" step="1" placeholder="Ej. 130" value="${p.watts}"><span class="suffix">W</span></div></div>
+
+      <div class="calc-box" id="calcBox"></div>
+
+      <div class="field" style="margin-top:12px;"><label for="pPrecio">Precio de venta</label><div class="suffix-wrap"><input required id="pPrecio" type="number" min="0" step="0.01" placeholder="0.00" value="${p.precioVenta}"><span class="suffix">MXN</span></div></div>
+
+      <div class="divider"></div>
+      <p class="hint" style="margin-bottom:10px;"><strong style="color:var(--ink);">Para el catálogo visual</strong> — así se agrupa y se ve el producto en la vista de catálogo para clientes.</p>
+      <div class="row2">
+        <div class="field"><label for="pColeccion">Colección / temporada</label><select id="pColeccion">
+          ${COLECCIONES.map(c=>`<option value="${c.id}" ${p.coleccion===c.id?'selected':''}>${c.emoji} ${c.label}</option>`).join('')}
+        </select></div>
+        <div class="field"><label for="pCategoria">Categoría</label><select id="pCategoria">
+          ${CATEGORIAS_PRODUCTO.map(cat=>`<option value="${cat}" ${p.categoria===cat?'selected':''}>${cat}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="field">
+        <label>Colores disponibles (para mostrar en el catálogo)</label>
+        <div class="colores-check-list" id="coloresDisponiblesBox">${coloresChecklistHTML(p.coloresDisponibles||[])}</div>
+      </div>
+
+      <div class="field"><label for="pNotas">Notas</label><textarea id="pNotas" placeholder="Detalles del producto, acabados, tiempos de post-proceso...">${esc(p.notas||'')}</textarea></div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" type="submit">${editingProductId? 'Guardar cambios' : ICONS.plus+'Agregar producto'}</button>
+        ${editingProductId? `<button type="button" class="btn btn-ghost" id="cancelEditProduct">Cancelar</button>` : ''}
+      </div>
+    </form>
+  `;
+}
+
+function coloresChecklistHTML(selected){
+  if(filaments.length===0) return '<p class="hint">Agrega filamentos primero para poder elegir colores.</p>';
+  return filaments.map(f=>`
+    <label class="color-check">
+      <input type="checkbox" value="${esc(f.colorHex)}" ${selected.includes(f.colorHex)?'checked':''}>
+      <span class="dot" style="background:${esc(f.colorHex)}"></span>${esc(f.nombre)}
+    </label>`).join('');
+}
+
+function currentUsosState(){
+  return Array.from(document.querySelectorAll('#usosList .uso-row')).map(r=>({
+    filamentId: r.querySelector('.uso-fil').value,
+    gramos: r.querySelector('.uso-gramos').value,
+  }));
+}
+
+function renderUsosRows(usos){
+  const list = document.getElementById('usosList');
+  const filOptions = (selId)=> filaments.length
+    ? `<option value="">Elige filamento</option>` + filaments.map(f=>`<option value="${f.id}" ${f.id===selId?'selected':''}>${esc(f.nombre)}</option>`).join('')
+    : '<option value="">Sin filamentos registrados</option>';
+  list.innerHTML = usos.map((u,i)=>`
+    <div class="uso-row" data-i="${i}">
+      <select class="uso-fil">${filOptions(u.filamentId)}</select>
+      <input class="uso-gramos" type="number" min="0" step="0.1" placeholder="gramos" value="${u.gramos}">
+      <button type="button" class="btn-icon" data-rm-uso="${i}" title="Quitar">${ICONS.close}</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('select,input').forEach(inp=> inp.addEventListener('input', updateCalcBox));
+  list.querySelectorAll('[data-rm-uso]').forEach(b=> b.addEventListener('click', ()=>{
+    const usos = currentUsosState();
+    usos.splice(Number(b.dataset.rmUso),1);
+    renderUsosRows(usos.length? usos : [{filamentId:'',gramos:''}]);
+    updateCalcBox();
+  }));
+}
+
+function updateCalcBox(){
+  const box = document.getElementById('calcBox');
+  if(!box) return;
+  const usos = currentUsosState().map(u=>({filamentId:u.filamentId, gramos:Number(u.gramos)||0}));
+  const horas = Number(document.getElementById('pHoras').value)||0;
+  const velocidad = document.getElementById('pVelocidad').value;
+  const wattsOverride = document.getElementById('pWatts').value;
+  const fake = { usos, horas, velocidad, watts: wattsOverride };
+  const c = computeProductCost(fake);
+  box.innerHTML = `
+    <div class="calc-row"><span>Costo de material</span><span>${fmtMXN(c.costoMaterial)}</span></div>
+    <div class="calc-row"><span>Costo de luz (${c.watts} W × ${fmtNum(horas,1)} h × ${fmtMXN(config.tarifaKwh)}/kWh)</span><span>${fmtMXN(c.costoEnergia)}</span></div>
+    <div class="calc-row total"><span>Costo de fabricación</span><span>${fmtMXN(c.costoFabricacion)}</span></div>
+  `;
+}
+
+function wireProductForm(){
+  renderUsosRows([{filamentId:'',gramos:''}]);
+  updateCalcBox();
+  document.getElementById('pHoras').addEventListener('input', updateCalcBox);
+  document.getElementById('pVelocidad').addEventListener('change', updateCalcBox);
+  document.getElementById('pWatts').addEventListener('input', updateCalcBox);
+  document.getElementById('addUso').addEventListener('click', ()=>{
+    const usos = currentUsosState();
+    usos.push({filamentId:'',gramos:''});
+    renderUsosRows(usos);
+    updateCalcBox();
+  });
+  const drop = document.getElementById('photoDrop');
+  const input = document.getElementById('photoInput');
+  if(assetsReady){
+    drop.addEventListener('click', ()=> input.click());
+    input.addEventListener('change', handlePhotoSelect);
+  }
+  document.getElementById('formProducto').addEventListener('submit', submitProductForm);
+}
+
+async function handlePhotoSelect(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const drop = document.getElementById('photoDrop');
+  drop.querySelector('.txt b').textContent = 'Optimizando foto...';
+  try{
+    const blob = await compressImage(file, 900, 0.72);
+    const preview = URL.createObjectURL(blob);
+    pendingPhotoPreview = preview;
+    const res = await assets.upload(blob, {type:'image/jpeg'});
+    pendingPhotoAssetId = res.id;
+    drop.innerHTML = `<img src="${preview}" alt=""><div class="txt"><b>Cambiar foto</b>${fmtNum(res.sizeBytes/1024,0)} KB optimizados</div>`;
+    drop.addEventListener('click', ()=> document.getElementById('photoInput').click());
+  }catch(err){
+    toast('No se pudo subir la foto');
+    drop.querySelector('.txt b').textContent = 'Subir foto';
+  }
+}
+
+function compressImage(file, maxDim=900, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let {width,height} = img;
+      if(width>height && width>maxDim){ height = Math.round(height*maxDim/width); width=maxDim; }
+      else if(height>=width && height>maxDim){ width = Math.round(width*maxDim/height); height=maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width=width; canvas.height=height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,width,height);
+      ctx.drawImage(img,0,0,width,height);
+      canvas.toBlob(b=> b? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+async function submitProductForm(e){
+  e.preventDefault();
+  const nombre = document.getElementById('pNombre').value.trim();
+  const usos = currentUsosState().filter(u=>u.filamentId && Number(u.gramos)>0).map(u=>({filamentId:u.filamentId, gramos:Number(u.gramos)}));
+  const horas = Number(document.getElementById('pHoras').value)||0;
+  const velocidad = document.getElementById('pVelocidad').value;
+  const wattsVal = document.getElementById('pWatts').value;
+  const precioVenta = Number(document.getElementById('pPrecio').value)||0;
+  const notas = document.getElementById('pNotas').value.trim();
+  const coleccion = document.getElementById('pColeccion').value;
+  const categoria = document.getElementById('pCategoria').value;
+  const coloresDisponibles = Array.from(document.querySelectorAll('#coloresDisponiblesBox input:checked')).map(i=>i.value);
+  if(!nombre || usos.length===0){ toast('Agrega al menos un filamento con gramos'); return; }
+  const data = {
+    nombre, usos, horas, velocidad,
+    watts: wattsVal===''? null : Number(wattsVal),
+    precioVenta, notas, coleccion, categoria, coloresDisponibles,
+    fotoAssetId: pendingPhotoAssetId || (editingProductId? (products.find(p=>p.id===editingProductId)||{}).fotoAssetId||null : null),
+  };
+  if(editingProductId){
+    if(db){ try{ await db.doc('products/'+editingProductId).update(data); toast('Producto actualizado'); }catch(err){ toast('No se pudo guardar'); } }
+    else{ const idx = products.findIndex(p=>p.id===editingProductId); if(idx>=0) Object.assign(products[idx], data); }
+  }else{
+    data.createdAt = Date.now();
+    if(db){ try{ await db.collection('products').add(data); toast('Producto agregado'); }catch(err){ toast('No se pudo guardar'); } }
+    else{ products.push(Object.assign({id:uid()}, data)); toast('Producto agregado (sin guardar en la nube)'); }
+  }
+  editingProductId = null; pendingPhotoAssetId = null; pendingPhotoPreview = null;
+  document.getElementById('productFormCard').innerHTML = productFormHTML();
+  wireProductForm();
+  renderProductList();
+}
+
+function renderProductList(){
+  const el = document.getElementById('productList');
+  if(!el) return;
+  if(products.length===0){
+    el.innerHTML = `<div class="empty">${ICONS.catalogo}<p>Tu catálogo está vacío. Agrega un producto arriba para calcular su costo de fabricación.</p></div>`;
+    return;
+  }
+  const sorted = [...products].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+  el.innerHTML = `<div class="list">${sorted.map(p=>{
+    const c = computeProductCost(p);
+    const margen = p.precioVenta - c.costoFabricacion;
+    return `<div class="item">
+      ${p.fotoAssetId? `<img class="thumb" src="/_blob/${p.fotoAssetId}" alt="">` : `<div class="thumb-empty">${ICONS.photo}</div>`}
+      <div class="item-main">
+        <div class="item-title">${esc(p.nombre)}</div>
+        <div class="item-sub">Costo <b>${fmtMXN(c.costoFabricacion)}</b> · Venta <b>${fmtMXN(p.precioVenta)}</b> · Margen <b style="color:${margen>=0?'var(--accent2)':'var(--danger)'}">${fmtMXN(margen)}</b></div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-icon" data-edit-prod="${p.id}" title="Editar">${ICONS.edit}</button>
+        <button class="btn-icon" data-del-prod="${p.id}" title="Eliminar">${ICONS.trash}</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+  el.querySelectorAll('[data-del-prod]').forEach(b=>b.addEventListener('click', ()=>deleteProduct(b.dataset.delProd)));
+  el.querySelectorAll('[data-edit-prod]').forEach(b=>b.addEventListener('click', ()=>startEditProduct(b.dataset.editProd)));
+}
+
+function startEditProduct(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  editingProductId = id;
+  pendingPhotoAssetId = null;
+  pendingPhotoPreview = p.fotoAssetId? '/_blob/'+p.fotoAssetId : null;
+  document.getElementById('productFormCard').innerHTML = productFormHTML(p);
+  wireProductForm();
+  renderUsosRows(p.usos && p.usos.length? p.usos.map(u=>({filamentId:u.filamentId, gramos:u.gramos})) : [{filamentId:'',gramos:''}]);
+  updateCalcBox();
+  document.getElementById('productFormCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+async function deleteProduct(id){
+  if(!confirm('¿Eliminar este producto del catálogo?')) return;
+  if(db){ try{ await db.doc('products/'+id).delete(); toast('Producto eliminado'); }catch(e){ toast('No se pudo eliminar'); } }
+  else{ products = products.filter(p=>p.id!==id); render(); }
+}
+
+/* ============================== CATÁLOGO VISUAL ============================== */
+function productCardHTML(p){
+  const col = coleccionOf(p.coleccion);
+  const photo = p.fotoAssetId
+    ? `<img src="/_blob/${p.fotoAssetId}" alt="">`
+    : `<div class="cat-card-noph">${ICONS.photo}</div>`;
+  const colores = (p.coloresDisponibles||[]).map(hex=>`<span class="dot" style="background:${esc(hex)}"></span>`).join('');
+  return `
+    <div class="cat-card">
+      <div class="cat-card-photo">${photo}</div>
+      <div class="cat-card-body">
+        <div class="cat-card-name">${esc(p.nombre)}</div>
+        <div class="cat-card-cat">${esc(p.categoria||'')}</div>
+        <div class="cat-card-price" style="color:${col.accent}">${fmtMXN(p.precioVenta)}</div>
+        ${colores? `<div class="cat-card-colors">${colores}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderCatalogoVisual(root){
+  const grupos = COLECCIONES.map(col=>({
+    col, items: products.filter(p=> (p.coleccion||'todo_anio')===col.id)
+  })).filter(g=>g.items.length>0);
+
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Vista de catálogo</h1><p>Así se ve tu catálogo de productos agrupado por temporada, listo para mostrar a tus clientes o imprimir.</p></div>
+    </div>
+    <div class="card" id="catVisualControls">
+      ${products.length===0 ? `<p class="hint">Agrega productos en la pestaña Catálogo y asígnales una colección para que aparezcan aquí agrupados.</p>` : `
+      <p class="hint">Se arma solo con lo que ya capturaste en el Catálogo: foto, nombre, categoría, precio y colores disponibles. Para cambiar cómo se ve un producto o su colección, edítalo desde la pestaña Catálogo.</p>
+      <button class="btn btn-primary" id="printCatalogoBtn">${ICONS.printer}Imprimir o guardar como PDF</button>
+      `}
+    </div>
+    <div id="catalogoVisualPrintArea">
+      ${grupos.length? grupos.map(g=>`
+        <section class="cat-page" style="--catbg:${g.col.bg};--catfg:${g.col.fg};--cataccent:${g.col.accent};">
+          <div class="cat-page-head">
+            <span class="cat-emoji">${g.col.emoji}</span>
+            <h2>${esc(g.col.label)}</h2>
+            <span class="cat-page-count">${g.items.length} producto${g.items.length===1?'':'s'}</span>
+          </div>
+          <div class="cat-grid">${g.items.map(productCardHTML).join('')}</div>
+        </section>
+      `).join('') : (products.length? `<div class="empty">${ICONS.galeria}<p>Ninguno de tus productos tiene colección asignada todavía. Edítalos en Catálogo para agruparlos aquí.</p></div>` : '')}
+    </div>
+  `;
+  const btn = document.getElementById('printCatalogoBtn');
+  if(btn) btn.addEventListener('click', ()=> window.print());
+}
+
+/* ============================== VENTAS ============================== */
+function renderVentas(root){
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Ventas</h1><p>Registra lo que vendes. El precio y las horas se llenan solos desde el catálogo, pero puedes ajustarlos.</p></div>
+    </div>
+    <div class="card">
+      <h2>Registrar venta</h2>
+      <form id="formVenta">
+        <div class="field"><label for="vProducto">Producto</label><select id="vProducto" ${products.length===0?'disabled':''}>
+          ${products.length? products.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('') : '<option value="">Agrega productos al catálogo primero</option>'}
+        </select></div>
+        <div class="row3">
+          <div class="field"><label for="vCantidad">Cantidad</label><input id="vCantidad" type="number" min="1" step="1" value="1"></div>
+          <div class="field"><label for="vHoras">Horas de máquina</label><input id="vHoras" type="number" min="0" step="0.1"></div>
+          <div class="field"><label for="vFecha">Fecha</label><input id="vFecha" type="date" value="${todayISO()}"></div>
+        </div>
+        <div class="field"><label for="vPrecio">Precio de venta (unitario)</label><div class="suffix-wrap"><input id="vPrecio" type="number" min="0" step="0.01"><span class="suffix">MXN</span></div></div>
+        <div class="field"><label for="vNotas">Notas</label><textarea id="vNotas" placeholder="Cliente, plataforma de venta, detalles..."></textarea></div>
+        <button class="btn btn-primary" type="submit" ${products.length===0?'disabled':''}>${ICONS.plus}Registrar venta</button>
+      </form>
+    </div>
+    <div id="salesList"></div>
+  `;
+  const sel = document.getElementById('vProducto');
+  function fillDefaults(){
+    const p = products.find(x=>x.id===sel.value);
+    if(!p) return;
+    document.getElementById('vPrecio').value = p.precioVenta || 0;
+    const cant = Number(document.getElementById('vCantidad').value)||1;
+    document.getElementById('vHoras').value = Math.round((p.horas||0)*cant*100)/100;
+  }
+  if(products.length){ fillDefaults(); }
+  sel.addEventListener('change', fillDefaults);
+  document.getElementById('vCantidad').addEventListener('input', ()=>{
+    const p = products.find(x=>x.id===sel.value);
+    if(!p) return;
+    const cant = Number(document.getElementById('vCantidad').value)||1;
+    document.getElementById('vHoras').value = Math.round((p.horas||0)*cant*100)/100;
+  });
+  document.getElementById('formVenta').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const p = products.find(x=>x.id===sel.value);
+    if(!p) return;
+    const cantidad = Number(document.getElementById('vCantidad').value)||1;
+    const horas = Number(document.getElementById('vHoras').value)||0;
+    const fecha = document.getElementById('vFecha').value || todayISO();
+    const precioUnitario = Number(document.getElementById('vPrecio').value)||0;
+    const notas = document.getElementById('vNotas').value.trim();
+    const costo = computeProductCost(p);
+    const data = { productId:p.id, productNombre:p.nombre, cantidad, horas, fecha, precioUnitario, costoUnitario: costo.costoFabricacion, notas, createdAt: Date.now() };
+    if(db){ try{ await db.collection('sales').add(data); toast('Venta registrada'); }catch(err){ toast('No se pudo guardar'); } }
+    else{ sales.unshift(Object.assign({id:uid()}, data)); toast('Venta registrada (sin guardar en la nube)'); render(); }
+    e.target.reset();
+    document.getElementById('vFecha').value = todayISO();
+    document.getElementById('vCantidad').value = 1;
+    fillDefaults();
+  });
+  renderSalesList();
+}
+
+function renderSalesList(){
+  const el = document.getElementById('salesList');
+  if(!el) return;
+  if(sales.length===0){
+    el.innerHTML = `<div class="empty">${ICONS.ventas}<p>Aún no registras ventas. Cuando vendas algo, regístralo arriba.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="list">${sales.map(s=>{
+    const total = s.precioUnitario * s.cantidad;
+    return `<div class="item">
+      <div class="item-main">
+        <div class="item-title">${esc(s.productNombre)} <span class="pill pill-listo">×${s.cantidad}</span></div>
+        <div class="item-sub">${s.fecha||'Sin fecha'} · <b>${fmtMXN(total)}</b> total · ${fmtNum(s.horas,1)} h${s.notas? ' · '+esc(s.notas) : ''}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-icon" data-del-sale="${s.id}" title="Eliminar">${ICONS.trash}</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+  el.querySelectorAll('[data-del-sale]').forEach(b=>b.addEventListener('click', ()=>deleteSale(b.dataset.delSale)));
+}
+
+async function deleteSale(id){
+  if(!confirm('¿Eliminar esta venta?')) return;
+  if(db){ try{ await db.doc('sales/'+id).delete(); toast('Venta eliminada'); }catch(e){ toast('No se pudo eliminar'); } }
+  else{ sales = sales.filter(s=>s.id!==id); render(); }
+}
+
+/* ============================== PEDIDOS PENDIENTES ============================== */
+function renderPedidos(root){
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Pedidos pendientes</h1><p>Lo que tienes que fabricar todavía para entregar o vender.</p></div>
+    </div>
+    <div class="card">
+      <h2>Nuevo pedido</h2>
+      <form id="formPedido">
+        <div class="field"><label for="oProducto">Qué hay que hacer</label><input required id="oProducto" type="text" placeholder="Ej. 2 macetas hexagonales, color verde"></div>
+        <div class="row3">
+          <div class="field"><label for="oCliente">Cliente (opcional)</label><input id="oCliente" type="text" placeholder="Nombre"></div>
+          <div class="field"><label for="oCantidad">Cantidad</label><input id="oCantidad" type="number" min="1" step="1" value="1"></div>
+          <div class="field"><label for="oFecha">Entrega</label><input id="oFecha" type="date"></div>
+        </div>
+        <div class="field"><label for="oNotas">Notas</label><textarea id="oNotas"></textarea></div>
+        <button class="btn btn-primary" type="submit">${ICONS.plus}Agregar pedido</button>
+      </form>
+    </div>
+    <div id="ordersList"></div>
+  `;
+  document.getElementById('formPedido').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const producto = document.getElementById('oProducto').value.trim();
+    if(!producto) return;
+    const data = {
+      producto, cliente: document.getElementById('oCliente').value.trim(),
+      cantidad: Number(document.getElementById('oCantidad').value)||1,
+      fechaEntrega: document.getElementById('oFecha').value || null,
+      estado: 'pendiente',
+      notas: document.getElementById('oNotas').value.trim(),
+      createdAt: Date.now(),
+    };
+    if(db){ try{ await db.collection('orders').add(data); toast('Pedido agregado'); }catch(err){ toast('No se pudo guardar'); } }
+    else{ orders.push(Object.assign({id:uid()}, data)); toast('Pedido agregado (sin guardar en la nube)'); render(); }
+    e.target.reset();
+  });
+  renderOrdersList();
+}
+
+const ESTADOS = [
+  {id:'pendiente', label:'Pendiente', cls:'pill-pendiente'},
+  {id:'en_proceso', label:'En proceso', cls:'pill-proceso'},
+  {id:'completado', label:'Completado', cls:'pill-listo'},
+];
+
+function renderOrdersList(){
+  const el = document.getElementById('ordersList');
+  if(!el) return;
+  if(orders.length===0){
+    el.innerHTML = `<div class="empty">${ICONS.pedidos}<p>No tienes pedidos pendientes. Agrega uno arriba cuando tengas algo por fabricar.</p></div>`;
+    return;
+  }
+  const order = {pendiente:0, en_proceso:1, completado:2};
+  const sorted = [...orders].sort((a,b)=> (order[a.estado]??0)-(order[b.estado]??0) || (a.fechaEntrega||'9999').localeCompare(b.fechaEntrega||'9999'));
+  el.innerHTML = `<div class="list">${sorted.map(o=>{
+    const est = ESTADOS.find(e=>e.id===o.estado) || ESTADOS[0];
+    return `<div class="item">
+      <div class="item-main">
+        <div class="item-title">${esc(o.producto)} <span class="pill ${est.cls}">${est.label}</span></div>
+        <div class="item-sub">×${o.cantidad}${o.cliente? ' · '+esc(o.cliente) : ''}${o.fechaEntrega? ' · entrega '+o.fechaEntrega : ''}${o.notas? ' · '+esc(o.notas) : ''}</div>
+      </div>
+      <div class="item-actions">
+        <select class="btn-ghost btn-sm" style="border-radius:6px;" data-estado="${o.id}">
+          ${ESTADOS.map(e=>`<option value="${e.id}" ${o.estado===e.id?'selected':''}>${e.label}</option>`).join('')}
+        </select>
+        <button class="btn-icon" data-del-order="${o.id}" title="Eliminar">${ICONS.trash}</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+  el.querySelectorAll('[data-estado]').forEach(s=>s.addEventListener('change', ()=>updateOrderEstado(s.dataset.estado, s.value)));
+  el.querySelectorAll('[data-del-order]').forEach(b=>b.addEventListener('click', ()=>deleteOrder(b.dataset.delOrder)));
+}
+
+async function updateOrderEstado(id, estado){
+  if(db){ try{ await db.doc('orders/'+id).update({estado}); }catch(e){ toast('No se pudo actualizar'); } }
+  else{ const o = orders.find(x=>x.id===id); if(o){ o.estado=estado; render(); } }
+}
+async function deleteOrder(id){
+  if(!confirm('¿Eliminar este pedido?')) return;
+  if(db){ try{ await db.doc('orders/'+id).delete(); toast('Pedido eliminado'); }catch(e){ toast('No se pudo eliminar'); } }
+  else{ orders = orders.filter(o=>o.id!==id); render(); }
+}
+
+/* ============================== ESTADÍSTICAS ============================== */
+function renderEstadisticas(root){
+  const ingresos = sales.reduce((s,x)=>s+x.precioUnitario*x.cantidad,0);
+  const gastos = sales.reduce((s,x)=>s+(x.costoUnitario||0)*x.cantidad,0);
+  const utilidad = ingresos - gastos;
+  const horasMaquina = sales.reduce((s,x)=>s+(x.horas||0),0);
+
+  const porProducto = {};
+  sales.forEach(s=>{
+    if(!porProducto[s.productNombre]) porProducto[s.productNombre] = {cantidad:0, ingresos:0, horas:0};
+    porProducto[s.productNombre].cantidad += s.cantidad;
+    porProducto[s.productNombre].ingresos += s.precioUnitario*s.cantidad;
+    porProducto[s.productNombre].horas += s.horas||0;
+  });
+  const ranking = Object.entries(porProducto).map(([nombre,v])=>({nombre,...v})).sort((a,b)=>b.cantidad-a.cantidad);
+
+  const porMes = {};
+  sales.forEach(s=>{
+    const k = (s.fecha||'').slice(0,7) || 'sin-fecha';
+    if(!porMes[k]) porMes[k] = {ingresos:0, gastos:0, label: monthLabel(s.fecha)};
+    porMes[k].ingresos += s.precioUnitario*s.cantidad;
+    porMes[k].gastos += (s.costoUnitario||0)*s.cantidad;
+  });
+  const meses = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
+
+  const pctU = Number(config.pctUtilidad)||0, pctI = Number(config.pctInversion)||0, pctC = Number(config.pctCostos)||0;
+
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Estadísticas</h1><p>El panorama de tu negocio: qué entra, qué sale y qué conviene hacer con la utilidad.</p></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Ingresos</div><div class="stat-value">${fmtMXN(ingresos)}</div></div>
+      <div class="stat-card"><div class="stat-label">Gastos (material + luz)</div><div class="stat-value">${fmtMXN(gastos)}</div></div>
+      <div class="stat-card"><div class="stat-label">Utilidad neta</div><div class="stat-value ${utilidad>=0?'pos':'neg'}">${fmtMXN(utilidad)}</div></div>
+      <div class="stat-card"><div class="stat-label">Horas de máquina</div><div class="stat-value">${fmtNum(horasMaquina,1)} h</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Gastos vs. ingresos por mes</h2>
+      <p class="hint">${meses.length? 'Con base en la fecha de cada venta registrada.' : 'Registra ventas con fecha para ver esta gráfica.'}</p>
+      ${meses.length? '<div class="chart-wrap"><canvas id="chartMeses"></canvas></div>' : ''}
+    </div>
+
+    <div class="card">
+      <h2>Producto más vendido</h2>
+      <p class="hint">${ranking.length? 'Ordenado por unidades vendidas.' : 'Aún no hay ventas registradas.'}</p>
+      ${ranking.length? `<div class="rank-list">${ranking.slice(0,6).map(r=>{
+        const max = ranking[0].cantidad || 1;
+        const pct = Math.max(8, Math.round((r.cantidad/max)*100));
+        return `<div class="rank-row"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div><div class="rank-name">${esc(r.nombre)}</div></div><div class="rank-val">${r.cantidad} pza${r.cantidad===1?'':'s'}</div></div>`;
+      }).join('')}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <h2>Horas de máquina por producto</h2>
+      <p class="hint">Concentrado de horas invertidas en tus productos terminados y vendidos.</p>
+      ${ranking.length? `<div class="rank-list">${[...ranking].sort((a,b)=>b.horas-a.horas).slice(0,6).map(r=>{
+        const maxh = Math.max(...ranking.map(x=>x.horas), 1);
+        const pct = Math.max(8, Math.round((r.horas/maxh)*100));
+        return `<div class="rank-row"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%;background:var(--accent);"></div><div class="rank-name">${esc(r.nombre)}</div></div><div class="rank-val">${fmtNum(r.horas,1)} h</div></div>`;
+      }).join('')}</div>` : `<div class="empty">${ICONS.estadisticas}<p>Sin datos todavía.</p></div>`}
+    </div>
+
+    <div class="card">
+      <h2>¿En qué conviene usar la utilidad?</h2>
+      <p class="hint">Reparto sugerido según los porcentajes que definiste en Configuración (${pctU}% / ${pctI}% / ${pctC}%).</p>
+      <div class="split-grid">
+        <div class="split-card"><div class="k">Utilidad para ti</div><div class="v">${fmtMXN(Math.max(utilidad,0)*pctU/100)}</div></div>
+        <div class="split-card"><div class="k">Reinversión (material, mejoras)</div><div class="v">${fmtMXN(Math.max(utilidad,0)*pctI/100)}</div></div>
+        <div class="split-card"><div class="k">Fondo de costos (luz, mantenimiento)</div><div class="v">${fmtMXN(Math.max(utilidad,0)*pctC/100)}</div></div>
+      </div>
+      ${utilidad<0? '<p class="hint" style="margin-top:10px;color:var(--danger);">La utilidad es negativa este periodo, así que no hay reparto que sugerir todavía.</p>' : ''}
+    </div>
+  `;
+
+  if(meses.length && window.Chart){
+    const ctx = document.getElementById('chartMeses');
+    if(charts.meses) charts.meses.destroy();
+    charts.meses = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels: meses.map(m=>m[1].label),
+        datasets:[
+          {label:'Ingresos', data:meses.map(m=>m[1].ingresos), backgroundColor: getCss('--accent2')},
+          {label:'Gastos', data:meses.map(m=>m[1].gastos), backgroundColor: getCss('--accent')},
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{color:getCss('--ink-soft'), font:{family:'Inter', size:11}} } },
+        scales:{
+          x:{ ticks:{color:getCss('--ink-soft'), font:{family:'IBM Plex Mono', size:10}}, grid:{color:getCss('--line')} },
+          y:{ ticks:{color:getCss('--ink-soft'), font:{family:'IBM Plex Mono', size:10}}, grid:{color:getCss('--line')} },
+        }
+      }
+    });
+  }
+}
+function getCss(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+
+/* ============================== CONFIGURACIÓN ============================== */
+function renderConfig(root){
+  root.innerHTML = `
+    <div class="view-head">
+      <div><h1>Configuración</h1><p>Ajusta el consumo de tu Bambu Lab P1S, tu tarifa de luz y cómo repartir la utilidad.</p></div>
+    </div>
+    <div class="card">
+      <h2>Consumo eléctrico por velocidad</h2>
+      <p class="hint">Estimaciones de referencia para la P1S (100–300 W durante impresión, con picos breves al calentar). Ajusta según lo que midas con tu propio medidor si puedes.</p>
+      <div class="row2">
+        <div class="field"><label for="wSilencioso">Silencioso</label><div class="suffix-wrap"><input id="wSilencioso" type="number" min="0" step="1" value="${config.watts.silencioso}"><span class="suffix">W</span></div></div>
+        <div class="field"><label for="wEstandar">Estándar</label><div class="suffix-wrap"><input id="wEstandar" type="number" min="0" step="1" value="${config.watts.estandar}"><span class="suffix">W</span></div></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="wDeportivo">Deportivo</label><div class="suffix-wrap"><input id="wDeportivo" type="number" min="0" step="1" value="${config.watts.deportivo}"><span class="suffix">W</span></div></div>
+        <div class="field"><label for="wLudicrous">Ludicrous</label><div class="suffix-wrap"><input id="wLudicrous" type="number" min="0" step="1" value="${config.watts.ludicrous}"><span class="suffix">W</span></div></div>
+      </div>
+      <div class="field"><label for="wTarifa">Tarifa de CFE</label><div class="suffix-wrap"><input id="wTarifa" type="number" min="0" step="0.001" value="${config.tarifaKwh}"><span class="suffix">MXN/kWh</span></div></div>
+      <p class="hint" style="margin-top:-4px;">Ponla como aparece en tu recibo de CFE. Como las tarifas cambian por región, temporada y consumo, revísala de vez en cuando.</p>
+    </div>
+    <div class="card">
+      <h2>Reparto sugerido de la utilidad</h2>
+      <p class="hint">Debe sumar 100%. Se usa en Estadísticas para sugerir cuánto quedarte, reinvertir y guardar para costos.</p>
+      <div class="row3">
+        <div class="field"><label for="pctU">Utilidad</label><div class="suffix-wrap"><input id="pctU" type="number" min="0" max="100" step="1" value="${config.pctUtilidad}"><span class="suffix">%</span></div></div>
+        <div class="field"><label for="pctI">Inversión</label><div class="suffix-wrap"><input id="pctI" type="number" min="0" max="100" step="1" value="${config.pctInversion}"><span class="suffix">%</span></div></div>
+        <div class="field"><label for="pctC">Costos</label><div class="suffix-wrap"><input id="pctC" type="number" min="0" max="100" step="1" value="${config.pctCostos}"><span class="suffix">%</span></div></div>
+      </div>
+      <p class="hint" id="pctSum"></p>
+    </div>
+    <button class="btn btn-primary" id="saveConfig">${ICONS.spark}Guardar configuración</button>
+  `;
+  function checkSum(){
+    const u = Number(document.getElementById('pctU').value)||0;
+    const i = Number(document.getElementById('pctI').value)||0;
+    const c = Number(document.getElementById('pctC').value)||0;
+    const sum = u+i+c;
+    const el = document.getElementById('pctSum');
+    el.textContent = `Suma actual: ${sum}%`;
+    el.style.color = sum===100? 'var(--accent2)' : 'var(--danger)';
+  }
+  ['pctU','pctI','pctC'].forEach(id=>document.getElementById(id).addEventListener('input', checkSum));
+  checkSum();
+  document.getElementById('saveConfig').addEventListener('click', async ()=>{
+    const data = {
+      watts:{
+        silencioso:Number(document.getElementById('wSilencioso').value)||0,
+        estandar:Number(document.getElementById('wEstandar').value)||0,
+        deportivo:Number(document.getElementById('wDeportivo').value)||0,
+        ludicrous:Number(document.getElementById('wLudicrous').value)||0,
+      },
+      tarifaKwh:Number(document.getElementById('wTarifa').value)||0,
+      pctUtilidad:Number(document.getElementById('pctU').value)||0,
+      pctInversion:Number(document.getElementById('pctI').value)||0,
+      pctCostos:Number(document.getElementById('pctC').value)||0,
+    };
+    if(db){
+      try{ await db.doc('config/settings').set(data); toast('Configuración guardada'); }
+      catch(e){ toast('No se pudo guardar'); }
+    }else{
+      config = data; toast('Configuración guardada (sin guardar en la nube)');
+    }
+  });
+}
+
+/* ============================== THEME ============================== */
+function initTheme(){
+  const saved = null; // no localStorage per-page persistence needed beyond session
+  const root = document.documentElement;
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    const cur = root.getAttribute('data-theme');
+    if(cur==='dark'){ root.setAttribute('data-theme','light'); }
+    else if(cur==='light'){ root.removeAttribute('data-theme'); }
+    else { root.setAttribute('data-theme','dark'); }
+  });
+}
+
+/* ============================== START ============================== */
+initTheme();
+initCapabilities();
+</script>
+</body>
+</html>
