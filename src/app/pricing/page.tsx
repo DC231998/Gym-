@@ -26,6 +26,8 @@ export default function PricingCalculatorPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [printers, setPrinters] = useState<any[]>([]);
+  const [selectedPrinterId, setSelectedPrinterId] = useState<string>('');
 
   // Form State
   const [selectedProductId, setSelectedProductId] = useState<string>('new');
@@ -72,12 +74,13 @@ export default function PricingCalculatorPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [prodRes, filRes, catRes, seaRes, setRes] = await Promise.all([
+        const [prodRes, filRes, catRes, seaRes, setRes, prnRes] = await Promise.all([
           fetch('/api/products').then((r) => r.json()),
           fetch('/api/filaments').then((r) => r.json()),
           fetch('/api/categories').then((r) => r.json()),
           fetch('/api/seasons').then((r) => r.json()),
           fetch('/api/settings').then((r) => r.json()),
+          fetch('/api/printers').then((r) => r.json()),
         ]);
 
         if (Array.isArray(prodRes)) setProducts(prodRes);
@@ -104,12 +107,38 @@ export default function PricingCalculatorPage() {
           if (setRes.defaultMarginPercent) setMarginPercent(setRes.defaultMarginPercent);
           if (setRes.defaultRoundPrices !== undefined) setRoundPrices(setRes.defaultRoundPrices);
         }
+        if (Array.isArray(prnRes) && prnRes.length > 0) {
+          setPrinters(prnRes);
+          const first = prnRes[0];
+          setSelectedPrinterId(first.id);
+          setPowerWatts(first.powerWatts ?? 150);
+          setPrinterPrice(first.purchasePrice ?? 0);
+          setPrinterResidual(first.residualValue ?? 0);
+          setPrinterLifespan(first.lifespanHours ?? 6000);
+          setDepreciationEnabled(first.depreciationEnabled ?? true);
+        }
       } catch (e) {
         console.error('Error loading pricing data:', e);
       }
     }
     loadData();
   }, []);
+
+  // Sync depreciation fields whenever user picks a different printer
+  const handlePrinterSelect = (id: string) => {
+    setSelectedPrinterId(id);
+    const p = printers.find((pr) => pr.id === id);
+    if (p) {
+      setPowerWatts(p.powerWatts ?? 150);
+      setPrinterPrice(p.purchasePrice ?? 0);
+      setPrinterResidual(p.residualValue ?? 0);
+      setPrinterLifespan(p.lifespanHours ?? 6000);
+      setDepreciationEnabled(p.depreciationEnabled ?? true);
+    }
+  };
+
+  // Derived: currently selected printer object (for labels)
+  const selectedPrinter = printers.find((p) => p.id === selectedPrinterId) ?? null;
 
   // When an existing product is selected, populate values
   const handleProductSelect = (id: string) => {
@@ -461,28 +490,57 @@ export default function PricingCalculatorPage() {
               </div>
             </div>
 
-            {/* Depreciación Bambu Lab P1S Combo */}
+            {/* Depreciación — Selector de Impresora */}
             <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-200">
-                  <input
-                    type="checkbox"
-                    checked={depreciationEnabled}
-                    onChange={(e) => setDepreciationEnabled(e.target.checked)}
-                    className="rounded border-slate-700 text-brand-500 focus:ring-brand-500"
-                  />
-                  Depreciación de Impresora ({formatCurrency(calculation.depreciationPerHour)}/hora)
-                </label>
-                <span className="text-[11px] font-mono text-slate-300 font-semibold">
-                  {formatCurrency(calculation.depreciationCost)}
-                </span>
-              </div>
-              {depreciationEnabled && (
-                <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-400">
-                  <div>Compra: {formatCurrency(Number(printerPrice) || 0)}</div>
-                  <div>Residual: {formatCurrency(Number(printerResidual) || 0)}</div>
-                  <div>Vida útil: {printerLifespan}h</div>
+              {printers.length === 0 ? (
+                <div className="flex items-start gap-2 text-xs text-amber-400">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    No tienes impresoras registradas. Ve a la sección{' '}
+                    <a href="/printers" className="underline font-bold hover:text-amber-300">
+                      Impresoras
+                    </a>{' '}
+                    para registrar una antes de calcular la depreciación.
+                  </span>
                 </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={depreciationEnabled}
+                        onChange={(e) => setDepreciationEnabled(e.target.checked)}
+                        className="rounded border-slate-700 text-brand-500 focus:ring-brand-500"
+                      />
+                      Depreciación ({formatCurrency(calculation.depreciationPerHour)}/hora)
+                    </label>
+                    <span className="text-[11px] font-mono text-slate-300 font-semibold">
+                      {formatCurrency(calculation.depreciationCost)}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Impresora para esta cotización</label>
+                    <select
+                      value={selectedPrinterId}
+                      onChange={(e) => handlePrinterSelect(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                    >
+                      {printers.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.brand} {p.model})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {depreciationEnabled && (
+                    <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-400">
+                      <div>Compra: {formatCurrency(Number(printerPrice) || 0)}</div>
+                      <div>Residual: {formatCurrency(Number(printerResidual) || 0)}</div>
+                      <div>Vida útil: {printerLifespan}h</div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -571,14 +629,16 @@ export default function PricingCalculatorPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">ELECTRICIDAD (CFE 150W):</span>
+                <span className="text-slate-400">ELECTRICIDAD ({powerWatts}W):</span>
                 <span className="font-mono font-bold text-slate-200">
                   {formatCurrency(calculation.electricityCost)}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">DEPRECIACIÓN (P1S Combo):</span>
+                <span className="text-slate-400">
+                  DEPRECIACIÓN{selectedPrinter ? ` (${selectedPrinter.name})` : ''}:
+                </span>
                 <span className="font-mono font-bold text-slate-200">
                   {formatCurrency(calculation.depreciationCost)}
                 </span>

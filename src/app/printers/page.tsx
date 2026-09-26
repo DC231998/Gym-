@@ -32,15 +32,15 @@ export default function PrintersPage() {
   const [editingPrinter, setEditingPrinter] = useState<any | null>(null);
 
   // Printer Form Fields
-  const [brand, setBrand] = useState('Bambu Lab');
-  const [model, setModel] = useState('P1S Combo');
-  const [name, setName] = useState('Bambu Lab P1S Combo Principal');
-  const [purchasePrice, setPurchasePrice] = useState<number | string>(21999);
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+  const [name, setName] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState<number | string>('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [powerWatts, setPowerWatts] = useState<number | string>(150);
-  const [accumulatedHours, setAccumulatedHours] = useState<number | string>(342.5);
-  const [lifespanHours, setLifespanHours] = useState<number | string>(6000);
-  const [residualValue, setResidualValue] = useState<number | string>(4000);
+  const [powerWatts, setPowerWatts] = useState<number | string>('');
+  const [accumulatedHours, setAccumulatedHours] = useState<number | string>(0);
+  const [lifespanHours, setLifespanHours] = useState<number | string>('');
+  const [residualValue, setResidualValue] = useState<number | string>('');
   const [depreciationEnabled, setDepreciationEnabled] = useState<boolean>(true);
   const [notes, setNotes] = useState('');
 
@@ -72,15 +72,15 @@ export default function PrintersPage() {
 
   const openCreatePrinter = () => {
     setEditingPrinter(null);
-    setBrand('Bambu Lab');
-    setModel('P1S Combo');
-    setName('Bambu Lab P1S Combo #' + (printers.length + 1));
-    setPurchasePrice(21999);
+    setBrand('');
+    setModel('');
+    setName('');
+    setPurchasePrice('');
     setPurchaseDate(new Date().toISOString().split('T')[0]);
-    setPowerWatts(150);
+    setPowerWatts('');
     setAccumulatedHours(0);
-    setLifespanHours(6000);
-    setResidualValue(4000);
+    setLifespanHours('');
+    setResidualValue('');
     setDepreciationEnabled(true);
     setNotes('');
     setIsPrinterModalOpen(true);
@@ -208,7 +208,7 @@ export default function PrintersPage() {
             Parque de Impresoras 3D & Mantenimiento
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Bambu Lab P1S Combo, amortización por hora, bitácora de servicio y consumo eléctrico
+            Cualquier marca y modelo: amortización por hora, bitácora de servicio y consumo eléctrico
           </p>
         </div>
 
