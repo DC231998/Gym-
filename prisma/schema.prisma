@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BusinessSettings {
+  id                          String   @id @default("default")
+  businessName                String   @default("3D Business Manager")
+  logoUrl                     String?
+  phone                       String   @default("4430000000")
+  whatsapp                    String   @default("4430000000")
+  email                       String   @default("contacto@3dbusiness.com")
+  address                     String   @default("Av. Principal #100")
+  neighborhood                String   @default("El Trébol")
+  city                        String   @default("Tarímbaro")
+  state                       String   @default("Michoacán")
+  country                     String   @default("México")
+  currency                    String   @default("MXN")
+  currencySymbol              String   @default("$")
+  socialLinks                 String?  // JSON with instagram, facebook, tiktok, etc.
+  
+  // Electricity configuration
+  defaultElectricityRate      Float    @default(2.15)
+  electricityTariffType       String   @default("1B / Doméstica Ordinaria")
+  electricityRateSource       String   @default("CFE Tarifa Doméstica Tarímbaro Michoacán")
+  electricityRateLastUpdated  DateTime @default(now())
+
+  // Pricing & costing defaults
+  defaultLaborRatePerHour     Float    @default(50.0)
+  defaultFailureRatePercent   Float    @default(5.0)
+  defaultMarginPercent        Float    @default(50.0)
+  defaultRoundPrices          Boolean  @default(true)
+
+  // Profit distribution percentages (sum must be 100%)
+  profitReinvestmentPercent   Float    @default(40.0)
+  profitMaintenancePercent    Float    @default(20.0)
+  profitOwnerPercent          Float    @default(40.0)
+
+  // Catalog defaults
+  catalogHeaderNotes          String   @default("Catálogo oficial de productos 3D. Cotizaciones y pedidos directos por WhatsApp.")
+  catalogFooterNotes          String   @default("Precios sujetos a cambio sin previo aviso. Envíos y entregas en Tarímbaro y Morelia.")
+
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model Printer {
+  id                  String   @id @default(cuid())
+  brand               String   @default("Bambu Lab")
+  model               String   @default("P1S Combo")
+  name                String   @default("Bambu Lab P1S Combo Principal")
+  purchasePrice       Float    @default(21999.0)
+  purchaseDate        DateTime @default(now())
+  powerWatts          Float    @default(150.0) // Average printing consumption
+  accumulatedHours    Float    @default(0.0)
+  lifespanHours       Float    @default(6000.0) // Estimated useful lifetime
+  residualValue       Float    @default(4000.0)
+  depreciationEnabled Boolean  @default(true)
+  status              String   @default("activo")
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  maintenances        PrinterMaintenance[]
+  printJobs           PrintJob[]
+}
+
+model PrinterMaintenance {
+  id                        String   @id @default(cuid())
+  printerId                 String
+  printer                   Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  date                      DateTime @default(now())
+  type                      String   // "Lubricación ejes", "Cambio boquilla", "Tensión correas", etc.
+  cost                      Float    @default(0.0)
+  printerHoursAtMaintenance Float    @default(0.0)
+  description               String
+  nextDueDate               DateTime?
+  nextDueHours              Float?
+  status                    String   @default("completado") // "completado", "pendiente"
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model Filament {
+  id                  String   @id @default(cuid())
+  brand               String   @default("Bambu Lab")
+  materialType        String   @default("PLA") // PLA, PLA+, PETG, ABS, ASA, TPU, etc.
+  name                String   // e.g. "Bambu PLA Basic"
+  colorName           String   // e.g. "Negro Carbón"
+  colorHex            String   @default("#1A1A1A")
+  purchasePrice       Float    @default(450.0)
+  purchaseWeightGrams Float    @default(1000.0)
+  availableGrams      Float    @default(1000.0)
+  pricePerGram        Float    @default(0.45)
+  purchaseDate        DateTime @default(now())
+  supplier            String   @default("Bambu Lab Store")
+  minStockGrams       Float    @default(200.0)
+  density             Float    @default(1.24)
+  printTemp           Int?     @default(220)
+  bedTemp             Int?     @default(55)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  products            Product[]
+  purchases           FilamentPurchase[]
+  printJobs           PrintJob[]
+}
+
+model FilamentPurchase {
+  id                 String   @id @default(cuid())
+  filamentId         String
+  filament           Filament @relation(fields: [filamentId], references: [id], onDelete: Cascade)
+  purchaseDate       DateTime @default(now())
+  quantitySpools     Int      @default(1)
+  spoolWeightGrams   Float    @default(1000.0)
+  unitCost           Float
+  totalCost          Float
+  supplier           String?
+  invoiceNumber      String?
+  notes              String?
+  createdAt          DateTime @default(now())
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?  // icon name e.g. "gift", "box", "sparkles"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    Product[]
+}
+
+model Season {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  slug           String   @unique
+  description    String?
+  bannerUrl      String?
+  primaryColorHex String  @default("#3B82F6")
+  accentColorHex String   @default("#1D4ED8")
+  themeStyle     String   @default("standard") // "christmas", "halloween", "romantic", "spring", "standard"
+  startDate      DateTime?
+  endDate        DateTime?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  products       Product[]
+}
+
+model Product {
+  id                 String   @id @default(cuid())
+  sku                String   @unique
+  name               String
+  description        String?
+  categoryId         String
+  category           Category @relation(fields: [categoryId], references: [id])
+  seasonId           String
+  season             Season   @relation(fields: [seasonId], references: [id])
+  primaryFilamentId  String?
+  filament           Filament? @relation(fields: [primaryFilamentId], references: [id], onDelete: SetNull)
+  defaultColorHex    String   @default("#1A1A1A")
+  defaultColorName   String   @default("Negro")
+  weightGrams        Float    @default(0.0)
+  printTimeMinutes   Int      @default(0)
+  failureRatePercent Float    @default(5.0)
+  
+  // Cost breakdown
+  filamentCost       Float    @default(0.0)
+  electricityCost    Float    @default(0.0)
+  depreciationCost   Float    @default(0.0)
+  laborCost          Float    @default(0.0)
+  otherCosts         Float    @default(0.0)
+  realCost           Float    @default(0.0)
+  
+  marginPercent      Float    @default(50.0)
+  salePrice          Float    @default(0.0)
+  stock              Int      @default(0)
+  minStock           Int      @default(2)
+  status             String   @default("activo") // "activo", "borrador", "archivado"
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  images             ProductImage[]
+  packageItems       PackageItem[]
+  saleItems          SaleItem[]
+  quoteItems         QuoteItem[]
+  printJobs          PrintJob[]
+}
+
+model ProductImage {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url          String   // Base64 data URL or external URL
+  isPrimary    Boolean  @default(false)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model Package {
+  id            String   @id @default(cuid())
+  name          String
+  sku           String   @unique
+  description   String?
+  discountType  String   @default("percent") // "percent" or "fixed"
+  discountValue Float    @default(0.0)
+  normalPrice   Float    @default(0.0)
+  packagePrice  Float    @default(0.0)
+  totalCost     Float    @default(0.0)
+  marginPercent Float    @default(0.0)
+  profit        Float    @default(0.0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         PackageItem[]
+  saleItems     SaleItem[]
+  quoteItems    QuoteItem[]
+}
+
+model PackageItem {
+  id        String   @id @default(cuid())
+  packageId String
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  unitCost  Float    @default(0.0)
+  unitPrice Float    @default(0.0)
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String?
+  whatsapp     String?
+  email        String?
+  address      String?
+  neighborhood String?
+  city         String?  @default("Tarímbaro")
+  state        String?  @default("Michoacán")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sales        Sale[]
+  quotes       Quote[]
+}
+
+model Sale {
+  id                   String     @id @default(cuid())
+  saleNumber           String     @unique
+  date                 DateTime   @default(now())
+  customerId           String?
+  customer             Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName         String     @default("Público General")
+  subtotal             Float      @default(0.0)
+  discount             Float      @default(0.0)
+  total                Float      @default(0.0)
+  totalCost            Float      @default(0.0)
+  totalProfit          Float      @default(0.0)
+  paidAmount           Float      @default(0.0)
+  pendingAmount        Float      @default(0.0)
+  status               String     @default("Pendiente") // Cotización, Pendiente, En producción, Listo, Entregado, Cancelado
+  notes                String?
+  
+  // Profit distribution snapshot
+  reinvestmentAmount   Float      @default(0.0)
+  maintenanceAmount    Float      @default(0.0)
+  ownerProfitAmount    Float      @default(0.0)
+  
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  items                SaleItem[]
+  payments             Payment[]
+}
+
+model SaleItem {
+  id                       String   @id @default(cuid())
+  saleId                   String
+  sale                     Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId                String?
+  product                  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  packageId                String?
+  package                  Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  description              String
+  quantity                 Int      @default(1)
+  unitPrice                Float    @default(0.0)
+  unitCost                 Float    @default(0.0)
+  subtotal                 Float    @default(0.0)
+  
+  // Immutable historical cost calculation snapshot
+  filamentCostSnapshot     Float    @default(0.0)
+  electricityCostSnapshot  Float    @default(0.0)
+  depreciationSnapshot     Float    @default(0.0)
+  laborSnapshot            Float    @default(0.0)
+  gramsSnapshot            Float    @default(0.0)
+  hoursSnapshot            Float    @default(0.0)
+  electricityRateSnapshot  Float    @default(0.0)
+  
+  createdAt                DateTime @default(now())
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  saleId     String
+  sale       Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  date       DateTime @default(now())
+  amount     Float
+  method     String   @default("Efectivo") // Efectivo, Transferencia, Tarjeta, Mercado Pago, Otro
+  reference  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+model Expense {
+  id            String   @id @default(cuid())
+  date          DateTime @default(now())
+  category      String   // Filamento, Electricidad, Mantenimiento, Herramientas, Empaque, Envíos, Software, Otros
+  description   String
+  amount        Float
+  paymentMethod String   @default("Efectivo") // Efectivo, Transferencia, Tarjeta, Mercado Pago, Otro
+  supplier      String?
+  receiptUrl    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PurchaseOrder {
+  id             String   @id @default(cuid())
+  itemTitle      String
+  supplier       String?
+  quantity       Int      @default(1)
+  estimatedPrice Float    @default(0.0)
+  priority       String   @default("Media") // Baja, Media, Alta, Urgente
+  targetDate     DateTime?
+  status         String   @default("Pendiente") // Pendiente, Comprado, Cancelado
+  category       String   @default("Filamento")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model InventoryMovement {
+  id            String   @id @default(cuid())
+  itemType      String   // "product" or "filament"
+  itemId        String
+  movementType  String   // "entrada", "salida", "ajuste", "venta", "produccion"
+  quantity      Float    // Grams for filament, units for products
+  previousStock Float
+  newStock      Float
+  reason        String
+  referenceId   String?  // saleId, printJobId, purchaseId
+  createdAt     DateTime @default(now())
+}
+
+model Quote {
+  id                 String      @id @default(cuid())
+  quoteNumber        String      @unique
+  customerId         String?
+  customer           Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName       String      @default("Público General")
+  customerPhone      String?
+  date               DateTime    @default(now())
+  validityDays       Int         @default(15)
+  subtotal           Float       @default(0.0)
+  discount           Float       @default(0.0)
+  total              Float       @default(0.0)
+  status             String      @default("vigente") // vigente, convertida, vencida, cancelada
+  notes              String?
+  convertedToSaleId  String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  items              QuoteItem[]
+}
+
+model QuoteItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  packageId   String?
+  package     Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float    @default(0.0)
+  subtotal    Float    @default(0.0)
+}
+
+model PrintJob {
+  id               String    @id @default(cuid())
+  printerId        String
+  printer          Printer   @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  productId        String?
+  product          Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  filamentId       String?
+  filament         Filament? @relation(fields: [filamentId], references: [id], onDelete: SetNull)
+  printName        String
+  gramsUsed        Float     @default(0.0)
+  printTimeMinutes Int       @default(0)
+  electricityCost  Float     @default(0.0)
+  depreciationCost Float     @default(0.0)
+  filamentCost     Float     @default(0.0)
+  totalCost        Float     @default(0.0)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  status           String    @default("completado") // "completado", "en_proceso", "fallido"
+  notes            String?
+  createdAt        DateTime  @default(now())
+}
