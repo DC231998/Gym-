@@ -48,12 +48,12 @@ export default function ProductsPage() {
   const [filamentId, setFilamentId] = useState('');
   const [colorHex, setColorHex] = useState('#1A1A1A');
   const [colorName, setColorName] = useState('Negro');
-  const [weightGrams, setWeightGrams] = useState(0);
-  const [printTimeMinutes, setPrintTimeMinutes] = useState(0);
-  const [realCost, setRealCost] = useState(0);
-  const [salePrice, setSalePrice] = useState(0);
-  const [stock, setStock] = useState(0);
-  const [minStock, setMinStock] = useState(2);
+  const [weightGrams, setWeightGrams] = useState<number | string>(0);
+  const [printTimeMinutes, setPrintTimeMinutes] = useState<number | string>(0);
+  const [realCost, setRealCost] = useState<number | string>(0);
+  const [salePrice, setSalePrice] = useState<number | string>(0);
+  const [stock, setStock] = useState<number | string>(0);
+  const [minStock, setMinStock] = useState<number | string>(2);
   const [status, setStatus] = useState('activo');
   const [images, setImages] = useState<Array<{ url: string; isPrimary: boolean }>>([]);
 
@@ -183,12 +183,12 @@ export default function ProductsPage() {
       primaryFilamentId: filamentId || null,
       defaultColorHex: colorHex,
       defaultColorName: colorName,
-      weightGrams: Number(weightGrams),
-      printTimeMinutes: Number(printTimeMinutes),
-      realCost: Number(realCost),
-      salePrice: Number(salePrice),
-      stock: Number(stock),
-      minStock: Number(minStock),
+      weightGrams: Number(weightGrams) || 0,
+      printTimeMinutes: Number(printTimeMinutes) || 0,
+      realCost: Number(realCost) || 0,
+      salePrice: Number(salePrice) || 0,
+      stock: Number(stock) || 0,
+      minStock: Number(minStock) || 0,
       status,
       images,
     };
@@ -609,7 +609,7 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     value={weightGrams}
-                    onChange={(e) => setWeightGrams(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setWeightGrams(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono"
                   />
                 </div>
@@ -619,7 +619,7 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     value={printTimeMinutes}
-                    onChange={(e) => setPrintTimeMinutes(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setPrintTimeMinutes(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono"
                   />
                 </div>
@@ -629,7 +629,7 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     value={stock}
-                    onChange={(e) => setStock(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setStock(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono"
                   />
                 </div>
@@ -640,7 +640,7 @@ export default function ProductsPage() {
                     type="number"
                     step="0.5"
                     value={salePrice}
-                    onChange={(e) => setSalePrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setSalePrice(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-brand-400 font-bold font-mono"
                   />
                 </div>

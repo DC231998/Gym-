@@ -30,7 +30,7 @@ export default function PackagesPage() {
   const [sku, setSku] = useState('');
   const [description, setDescription] = useState('');
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
-  const [discountValue, setDiscountValue] = useState<number>(10);
+  const [discountValue, setDiscountValue] = useState<number | string>(10);
   const [customPrice, setCustomPrice] = useState<string>('');
   const [selectedItems, setSelectedItems] = useState<
     Array<{ productId: string; quantity: number; unitCost: number; unitPrice: number; name: string }>
@@ -130,7 +130,7 @@ export default function PackagesPage() {
       quantity: i.quantity,
     })),
     discountType,
-    discountValue
+    Number(discountValue) || 0
   );
 
   const finalPackagePrice = customPrice !== '' ? parseFloat(customPrice) || 0 : metrics.packagePrice;
@@ -449,7 +449,7 @@ export default function PackagesPage() {
                     min="0"
                     step="0.5"
                     value={discountValue}
-                    onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setDiscountValue(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>

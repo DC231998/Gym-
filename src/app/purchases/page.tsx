@@ -26,8 +26,8 @@ export default function PurchasesPage() {
   // Form Fields
   const [itemTitle, setItemTitle] = useState('');
   const [supplier, setSupplier] = useState('');
-  const [quantity, setQuantity] = useState<number>(1);
-  const [estimatedPrice, setEstimatedPrice] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number | string>(1);
+  const [estimatedPrice, setEstimatedPrice] = useState<number | string>(0);
   const [priority, setPriority] = useState('Media');
   const [category, setCategory] = useState('Filamento');
   const [targetDate, setTargetDate] = useState('');
@@ -86,8 +86,8 @@ export default function PurchasesPage() {
     const payload = {
       itemTitle,
       supplier,
-      quantity: Number(quantity),
-      estimatedPrice: Number(estimatedPrice),
+      quantity: Number(quantity) || 1,
+      estimatedPrice: Number(estimatedPrice) || 0,
       priority,
       category,
       targetDate: targetDate || null,
@@ -323,7 +323,7 @@ export default function PurchasesPage() {
                     type="number"
                     min="1"
                     value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                    onChange={(e) => setQuantity(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -334,7 +334,7 @@ export default function PurchasesPage() {
                     type="number"
                     step="0.5"
                     value={estimatedPrice}
-                    onChange={(e) => setEstimatedPrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setEstimatedPrice(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>

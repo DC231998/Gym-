@@ -40,29 +40,29 @@ export default function PricingCalculatorPage() {
   const [filamentColorName, setFilamentColorName] = useState('Negro Carbón');
 
   // Specs & Inputs
-  const [weightGrams, setWeightGrams] = useState<number>(50);
-  const [printHours, setPrintHours] = useState<number>(1.5);
-  const [quantityPieces, setQuantityPieces] = useState<number>(1);
-  const [failureRatePercent, setFailureRatePercent] = useState<number>(5);
+  const [weightGrams, setWeightGrams] = useState<number | string>(50);
+  const [printHours, setPrintHours] = useState<number | string>(1.5);
+  const [quantityPieces, setQuantityPieces] = useState<number | string>(1);
+  const [failureRatePercent, setFailureRatePercent] = useState<number | string>(5);
 
   // Electricity
-  const [powerWatts, setPowerWatts] = useState<number>(150);
-  const [electricityRate, setElectricityRate] = useState<number>(2.15);
+  const [powerWatts, setPowerWatts] = useState<number | string>(150);
+  const [electricityRate, setElectricityRate] = useState<number | string>(2.15);
 
   // Depreciation
   const [depreciationEnabled, setDepreciationEnabled] = useState<boolean>(true);
-  const [printerPrice, setPrinterPrice] = useState<number>(21999);
-  const [printerResidual, setPrinterResidual] = useState<number>(4000);
-  const [printerLifespan, setPrinterLifespan] = useState<number>(6000);
+  const [printerPrice, setPrinterPrice] = useState<number | string>(21999);
+  const [printerResidual, setPrinterResidual] = useState<number | string>(4000);
+  const [printerLifespan, setPrinterLifespan] = useState<number | string>(6000);
 
   // Labor & Other
   const [laborEnabled, setLaborEnabled] = useState<boolean>(true);
-  const [laborRatePerHour, setLaborRatePerHour] = useState<number>(60);
-  const [laborHours, setLaborHours] = useState<number>(0.25);
-  const [otherCosts, setOtherCosts] = useState<number>(0);
+  const [laborRatePerHour, setLaborRatePerHour] = useState<number | string>(60);
+  const [laborHours, setLaborHours] = useState<number | string>(0.25);
+  const [otherCosts, setOtherCosts] = useState<number | string>(0);
 
   // Margin & Rounding
-  const [marginPercent, setMarginPercent] = useState<number>(50);
+  const [marginPercent, setMarginPercent] = useState<number | string>(50);
   const [roundPrices, setRoundPrices] = useState<boolean>(true);
 
   // Status & Feedback
@@ -144,19 +144,19 @@ export default function PricingCalculatorPage() {
   // Execute precise calculation
   const calculation = calculateRealProductPricing({
     filamentPricePerGram: selectedFilament?.pricePerGram || 0.46,
-    weightGrams: weightGrams * Math.max(1, quantityPieces),
-    failureRatePercent,
-    powerWatts,
-    printTimeHours: printHours * Math.max(1, quantityPieces),
-    electricityRatePerKwh: electricityRate,
+    weightGrams: (Number(weightGrams) || 0) * Math.max(1, Number(quantityPieces) || 1),
+    failureRatePercent: Number(failureRatePercent) || 0,
+    powerWatts: Number(powerWatts) || 0,
+    printTimeHours: (Number(printHours) || 0) * Math.max(1, Number(quantityPieces) || 1),
+    electricityRatePerKwh: Number(electricityRate) || 0,
     depreciationEnabled,
-    printerPurchasePrice: printerPrice,
-    printerResidualValue: printerResidual,
-    printerLifespanHours: printerLifespan,
-    laborRatePerHour: laborEnabled ? laborRatePerHour : 0,
-    laborHours: laborEnabled ? laborHours : 0,
-    otherCosts: otherCosts * Math.max(1, quantityPieces),
-    marginPercent,
+    printerPurchasePrice: Number(printerPrice) || 0,
+    printerResidualValue: Number(printerResidual) || 0,
+    printerLifespanHours: Number(printerLifespan) || 6000,
+    laborRatePerHour: laborEnabled ? (Number(laborRatePerHour) || 0) : 0,
+    laborHours: laborEnabled ? (Number(laborHours) || 0) : 0,
+    otherCosts: (Number(otherCosts) || 0) * Math.max(1, Number(quantityPieces) || 1),
+    marginPercent: Number(marginPercent) || 0,
     roundPrices,
   });
 
@@ -182,16 +182,16 @@ export default function PricingCalculatorPage() {
       primaryFilamentId: selectedFilament?.id || null,
       defaultColorHex: filamentColorHex,
       defaultColorName: filamentColorName,
-      weightGrams,
-      printTimeMinutes: Math.round(printHours * 60),
-      failureRatePercent,
+      weightGrams: Number(weightGrams) || 0,
+      printTimeMinutes: Math.round((Number(printHours) || 0) * 60),
+      failureRatePercent: Number(failureRatePercent) || 0,
       filamentCost: calculation.totalFilamentCost,
       electricityCost: calculation.electricityCost,
       depreciationCost: calculation.depreciationCost,
       laborCost: calculation.laborCost,
       otherCosts: calculation.otherCosts,
       realCost: calculation.realCost,
-      marginPercent,
+      marginPercent: Number(marginPercent) || 0,
       salePrice: calculation.finalPrice,
     };
 
@@ -372,7 +372,7 @@ export default function PricingCalculatorPage() {
                     min="0"
                     step="0.5"
                     value={weightGrams}
-                    onChange={(e) => setWeightGrams(Math.max(0, parseFloat(e.target.value) || 0))}
+                    onChange={(e) => setWeightGrams(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">g</span>
@@ -387,7 +387,7 @@ export default function PricingCalculatorPage() {
                     min="0"
                     step="0.1"
                     value={printHours}
-                    onChange={(e) => setPrintHours(Math.max(0, parseFloat(e.target.value) || 0))}
+                    onChange={(e) => setPrintHours(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">h</span>
@@ -401,7 +401,7 @@ export default function PricingCalculatorPage() {
                   min="1"
                   step="1"
                   value={quantityPieces}
-                  onChange={(e) => setQuantityPieces(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => setQuantityPieces(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                 />
               </div>
@@ -415,7 +415,7 @@ export default function PricingCalculatorPage() {
                     max="100"
                     step="1"
                     value={failureRatePercent}
-                    onChange={(e) => setFailureRatePercent(Math.max(0, parseFloat(e.target.value) || 0))}
+                    onChange={(e) => setFailureRatePercent(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-7 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">%</span>
@@ -444,7 +444,7 @@ export default function PricingCalculatorPage() {
                   <input
                     type="number"
                     value={powerWatts}
-                    onChange={(e) => setPowerWatts(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setPowerWatts(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono"
                   />
                 </div>
@@ -454,7 +454,7 @@ export default function PricingCalculatorPage() {
                     type="number"
                     step="0.01"
                     value={electricityRate}
-                    onChange={(e) => setElectricityRate(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setElectricityRate(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono"
                   />
                 </div>
@@ -479,8 +479,8 @@ export default function PricingCalculatorPage() {
               </div>
               {depreciationEnabled && (
                 <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-400">
-                  <div>Compra: {formatCurrency(printerPrice)}</div>
-                  <div>Residual: {formatCurrency(printerResidual)}</div>
+                  <div>Compra: {formatCurrency(Number(printerPrice) || 0)}</div>
+                  <div>Residual: {formatCurrency(Number(printerResidual) || 0)}</div>
                   <div>Vida útil: {printerLifespan}h</div>
                 </div>
               )}
@@ -510,7 +510,7 @@ export default function PricingCalculatorPage() {
                       <input
                         type="number"
                         value={laborRatePerHour}
-                        onChange={(e) => setLaborRatePerHour(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setLaborRatePerHour(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono"
                       />
                     </div>
@@ -520,7 +520,7 @@ export default function PricingCalculatorPage() {
                         type="number"
                         step="0.05"
                         value={laborHours}
-                        onChange={(e) => setLaborHours(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setLaborHours(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono"
                       />
                     </div>
@@ -539,7 +539,7 @@ export default function PricingCalculatorPage() {
                   type="number"
                   step="0.5"
                   value={otherCosts}
-                  onChange={(e) => setOtherCosts(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={(e) => setOtherCosts(e.target.value)}
                   placeholder="0.00"
                   className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono"
                 />
@@ -557,7 +557,7 @@ export default function PricingCalculatorPage() {
                 Desglose de Costo Real
               </span>
               <span className="text-xs text-slate-400">
-                {quantityPieces > 1 ? `${quantityPieces} piezas` : '1 pieza'}
+                {Number(quantityPieces) > 1 ? `${quantityPieces} piezas` : '1 pieza'}
               </span>
             </div>
 

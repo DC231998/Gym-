@@ -37,14 +37,14 @@ export default function SettingsPage() {
   const [country, setCountry] = useState('México');
 
   // Electricity
-  const [defaultElectricityRate, setDefaultElectricityRate] = useState<number>(2.15);
+  const [defaultElectricityRate, setDefaultElectricityRate] = useState<number | string>(2.15);
   const [electricityTariffType, setElectricityTariffType] = useState('1B / Doméstica Ordinaria (CFE)');
   const [electricityRateSource, setElectricityRateSource] = useState('CFE Tarifa Doméstica Tarímbaro Michoacán');
 
   // Pricing Defaults
-  const [defaultLaborRatePerHour, setDefaultLaborRatePerHour] = useState<number>(60);
-  const [defaultFailureRatePercent, setDefaultFailureRatePercent] = useState<number>(5);
-  const [defaultMarginPercent, setDefaultMarginPercent] = useState<number>(50);
+  const [defaultLaborRatePerHour, setDefaultLaborRatePerHour] = useState<number | string>(60);
+  const [defaultFailureRatePercent, setDefaultFailureRatePercent] = useState<number | string>(5);
+  const [defaultMarginPercent, setDefaultMarginPercent] = useState<number | string>(50);
   const [defaultRoundPrices, setDefaultRoundPrices] = useState<boolean>(true);
 
   // Profit Distribution
@@ -115,12 +115,12 @@ export default function SettingsPage() {
       city,
       state,
       country,
-      defaultElectricityRate: Number(defaultElectricityRate),
+      defaultElectricityRate: Number(defaultElectricityRate) || 0,
       electricityTariffType,
       electricityRateSource,
-      defaultLaborRatePerHour: Number(defaultLaborRatePerHour),
-      defaultFailureRatePercent: Number(defaultFailureRatePercent),
-      defaultMarginPercent: Number(defaultMarginPercent),
+      defaultLaborRatePerHour: Number(defaultLaborRatePerHour) || 0,
+      defaultFailureRatePercent: Number(defaultFailureRatePercent) || 0,
+      defaultMarginPercent: Number(defaultMarginPercent) || 0,
       defaultRoundPrices,
       profitReinvestmentPercent: Number(profitReinvestmentPercent),
       profitMaintenancePercent: Number(profitMaintenancePercent),
@@ -297,7 +297,7 @@ export default function SettingsPage() {
                 step="0.01"
                 required
                 value={defaultElectricityRate}
-                onChange={(e) => setDefaultElectricityRate(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setDefaultElectricityRate(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-400 font-mono font-bold"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
@@ -340,7 +340,7 @@ export default function SettingsPage() {
               <input
                 type="number"
                 value={defaultLaborRatePerHour}
-                onChange={(e) => setDefaultLaborRatePerHour(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setDefaultLaborRatePerHour(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
               />
             </div>
@@ -350,7 +350,7 @@ export default function SettingsPage() {
               <input
                 type="number"
                 value={defaultFailureRatePercent}
-                onChange={(e) => setDefaultFailureRatePercent(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setDefaultFailureRatePercent(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
               />
             </div>
@@ -360,7 +360,7 @@ export default function SettingsPage() {
               <input
                 type="number"
                 value={defaultMarginPercent}
-                onChange={(e) => setDefaultMarginPercent(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setDefaultMarginPercent(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
               />
             </div>

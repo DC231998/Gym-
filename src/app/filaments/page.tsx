@@ -39,21 +39,21 @@ export default function FilamentsPage() {
   const [name, setName] = useState('');
   const [colorName, setColorName] = useState('Negro Carbón');
   const [colorHex, setColorHex] = useState('#1A1A1A');
-  const [purchasePrice, setPurchasePrice] = useState<number>(450);
-  const [purchaseWeightGrams, setPurchaseWeightGrams] = useState<number>(1000);
-  const [availableGrams, setAvailableGrams] = useState<number>(1000);
+  const [purchasePrice, setPurchasePrice] = useState<number | string>(450);
+  const [purchaseWeightGrams, setPurchaseWeightGrams] = useState<number | string>(1000);
+  const [availableGrams, setAvailableGrams] = useState<number | string>(1000);
   const [supplier, setSupplier] = useState('Bambu Lab Store');
-  const [minStockGrams, setMinStockGrams] = useState<number>(200);
-  const [density, setDensity] = useState<number>(1.24);
-  const [printTemp, setPrintTemp] = useState<number>(220);
-  const [bedTemp, setBedTemp] = useState<number>(55);
+  const [minStockGrams, setMinStockGrams] = useState<number | string>(200);
+  const [density, setDensity] = useState<number | string>(1.24);
+  const [printTemp, setPrintTemp] = useState<number | string>(220);
+  const [bedTemp, setBedTemp] = useState<number | string>(55);
   const [notes, setNotes] = useState('');
 
   // Quick Restock Modal
   const [restockModalOpen, setRestockModalOpen] = useState(false);
   const [restockFilament, setRestockFilament] = useState<any | null>(null);
-  const [restockGrams, setRestockGrams] = useState<number>(1000);
-  const [restockCost, setRestockCost] = useState<number>(450);
+  const [restockGrams, setRestockGrams] = useState<number | string>(1000);
+  const [restockCost, setRestockCost] = useState<number | string>(450);
 
   useEffect(() => {
     loadFilaments();
@@ -122,14 +122,14 @@ export default function FilamentsPage() {
       name: name || `${brand} ${finalMaterialType} ${colorName}`,
       colorName,
       colorHex,
-      purchasePrice: Number(purchasePrice),
-      purchaseWeightGrams: Number(purchaseWeightGrams),
-      availableGrams: Number(availableGrams),
+      purchasePrice: Number(purchasePrice) || 0,
+      purchaseWeightGrams: Number(purchaseWeightGrams) || 1000,
+      availableGrams: Number(availableGrams) || 0,
       supplier,
-      minStockGrams: Number(minStockGrams),
-      density: Number(density),
-      printTemp: Number(printTemp),
-      bedTemp: Number(bedTemp),
+      minStockGrams: Number(minStockGrams) || 0,
+      density: Number(density) || 1.24,
+      printTemp: Number(printTemp) || 215,
+      bedTemp: Number(bedTemp) || 60,
       notes,
     };
 
@@ -509,7 +509,7 @@ export default function FilamentsPage() {
                     type="number"
                     step="0.5"
                     value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -519,7 +519,7 @@ export default function FilamentsPage() {
                   <input
                     type="number"
                     value={purchaseWeightGrams}
-                    onChange={(e) => setPurchaseWeightGrams(parseFloat(e.target.value) || 1000)}
+                    onChange={(e) => setPurchaseWeightGrams(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -529,7 +529,7 @@ export default function FilamentsPage() {
                   <input
                     type="number"
                     value={availableGrams}
-                    onChange={(e) => setAvailableGrams(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setAvailableGrams(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -538,7 +538,7 @@ export default function FilamentsPage() {
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs flex items-center justify-between">
                 <span className="text-slate-400">Precio calculado automáticamente por gramo:</span>
                 <span className="font-mono font-bold text-brand-400">
-                  {formatCurrency(calculateFilamentPricePerGram(purchasePrice, purchaseWeightGrams))}/g
+                  {formatCurrency(calculateFilamentPricePerGram(Number(purchasePrice) || 0, Number(purchaseWeightGrams) || 1))}/g
                 </span>
               </div>
 
@@ -549,7 +549,7 @@ export default function FilamentsPage() {
                   <input
                     type="number"
                     value={printTemp}
-                    onChange={(e) => setPrintTemp(parseInt(e.target.value) || 215)}
+                    onChange={(e) => setPrintTemp(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -559,7 +559,7 @@ export default function FilamentsPage() {
                   <input
                     type="number"
                     value={bedTemp}
-                    onChange={(e) => setBedTemp(parseInt(e.target.value) || 60)}
+                    onChange={(e) => setBedTemp(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -569,7 +569,7 @@ export default function FilamentsPage() {
                   <input
                     type="number"
                     value={minStockGrams}
-                    onChange={(e) => setMinStockGrams(parseFloat(e.target.value) || 200)}
+                    onChange={(e) => setMinStockGrams(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -616,7 +616,7 @@ export default function FilamentsPage() {
                   type="number"
                   required
                   value={restockGrams}
-                  onChange={(e) => setRestockGrams(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setRestockGrams(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                 />
               </div>
@@ -628,7 +628,7 @@ export default function FilamentsPage() {
                   step="0.5"
                   required
                   value={restockCost}
-                  onChange={(e) => setRestockCost(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setRestockCost(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                 />
                 <span className="text-[10px] text-slate-400 mt-1 block">

@@ -55,15 +55,15 @@ export default function SalesPage() {
       hours?: number;
     }>
   >([]);
-  const [discount, setDiscount] = useState<number>(0);
-  const [initialPayment, setInitialPayment] = useState<number>(0);
+  const [discount, setDiscount] = useState<number | string>(0);
+  const [initialPayment, setInitialPayment] = useState<number | string>(0);
   const [initialPaymentMethod, setInitialPaymentMethod] = useState('Efectivo');
   const [notes, setNotes] = useState('');
 
   // Payment Modal
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeSaleForPayment, setActiveSaleForPayment] = useState<any | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentAmount, setPaymentAmount] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState('Efectivo');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
@@ -152,7 +152,7 @@ export default function SalesPage() {
   };
 
   const saleSubtotal = saleItems.reduce((acc, it) => acc + it.unitPrice * it.quantity, 0);
-  const saleTotal = Math.max(0, saleSubtotal - discount);
+  const saleTotal = Math.max(0, saleSubtotal - (Number(discount) || 0));
 
   const handleCreateSale = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,8 +168,8 @@ export default function SalesPage() {
       customerName: customer?.name || 'Público General',
       date: saleDate,
       items: saleItems,
-      discount: Number(discount),
-      initialPaymentAmount: Number(initialPayment),
+      discount: Number(discount) || 0,
+      initialPaymentAmount: Number(initialPayment) || 0,
       initialPaymentMethod,
       notes,
     };
@@ -207,7 +207,7 @@ export default function SalesPage() {
     e.preventDefault();
     if (!activeSaleForPayment) return;
 
-    if (paymentAmount <= 0) {
+    if (Number(paymentAmount) <= 0) {
       alert('Introduce un monto válido mayor a 0');
       return;
     }
@@ -217,7 +217,7 @@ export default function SalesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: Number(paymentAmount),
+          amount: Number(paymentAmount) || 0,
           method: paymentMethod,
           reference: paymentRef,
           notes: paymentNotes,
@@ -602,7 +602,7 @@ export default function SalesPage() {
                     min="0"
                     step="0.5"
                     value={discount}
-                    onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setDiscount(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -629,7 +629,7 @@ export default function SalesPage() {
                       max={saleTotal}
                       step="0.5"
                       value={initialPayment}
-                      onChange={(e) => setInitialPayment(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setInitialPayment(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
                     />
                   </div>
@@ -722,7 +722,7 @@ export default function SalesPage() {
                   max={activeSaleForPayment.pendingAmount}
                   step="0.5"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold text-brand-400"
                 />
               </div>

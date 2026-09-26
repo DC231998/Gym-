@@ -28,8 +28,8 @@ export default function QuotesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split('T')[0]);
-  const [validityDays, setValidityDays] = useState<number>(15);
-  const [discount, setDiscount] = useState<number>(0);
+  const [validityDays, setValidityDays] = useState<number | string>(15);
+  const [discount, setDiscount] = useState<number | string>(0);
   const [notes, setNotes] = useState('');
   const [quoteItems, setQuoteItems] = useState<
     Array<{
@@ -120,7 +120,7 @@ export default function QuotesPage() {
   };
 
   const quoteSubtotal = quoteItems.reduce((acc, it) => acc + it.unitPrice * it.quantity, 0);
-  const quoteTotal = Math.max(0, quoteSubtotal - discount);
+  const quoteTotal = Math.max(0, quoteSubtotal - (Number(discount) || 0));
 
   const handleCreateQuote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,8 +136,8 @@ export default function QuotesPage() {
       customerName: customer?.name || 'Público General',
       customerPhone: customer?.phone || customer?.whatsapp || '',
       date: quoteDate,
-      validityDays: Number(validityDays),
-      discount: Number(discount),
+      validityDays: Number(validityDays) || 15,
+      discount: Number(discount) || 0,
       items: quoteItems,
       notes,
     };
@@ -352,7 +352,7 @@ export default function QuotesPage() {
                     type="number"
                     min="1"
                     value={validityDays}
-                    onChange={(e) => setValidityDays(parseInt(e.target.value) || 15)}
+                    onChange={(e) => setValidityDays(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -461,7 +461,7 @@ export default function QuotesPage() {
                     min="0"
                     step="0.5"
                     value={discount}
-                    onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setDiscount(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>

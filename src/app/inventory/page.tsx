@@ -33,7 +33,7 @@ export default function InventoryPage() {
   const [itemType, setItemType] = useState<'filament' | 'product'>('filament');
   const [selectedItemId, setSelectedItemId] = useState('');
   const [movementType, setMovementType] = useState<'entrada' | 'salida' | 'ajuste'>('entrada');
-  const [quantity, setQuantity] = useState<number>(100);
+  const [quantity, setQuantity] = useState<number | string>(100);
   const [reason, setReason] = useState('');
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function InventoryPage() {
 
   const handleRecordMovement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedItemId || quantity <= 0) {
+    if (!selectedItemId || Number(quantity) <= 0) {
       alert('Selecciona un elemento y cantidad válida');
       return;
     }
@@ -72,7 +72,7 @@ export default function InventoryPage() {
           itemType,
           itemId: selectedItemId,
           movementType,
-          quantity: Number(quantity),
+          quantity: Number(quantity) || 0,
           reason: reason || 'Ajuste manual de inventario',
         }),
       });
@@ -373,7 +373,7 @@ export default function InventoryPage() {
                   min="0.1"
                   step="0.1"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setQuantity(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold"
                 />
               </div>

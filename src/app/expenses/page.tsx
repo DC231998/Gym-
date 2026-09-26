@@ -55,7 +55,7 @@ export default function ExpensesPage() {
   // Form Fields
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Filamento');
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState('Efectivo');
   const [supplier, setSupplier] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -118,7 +118,7 @@ export default function ExpensesPage() {
 
   const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description.trim() || amount <= 0) {
+    if (!description.trim() || Number(amount) <= 0) {
       alert('Descripción y monto válido son obligatorios');
       return;
     }
@@ -126,7 +126,7 @@ export default function ExpensesPage() {
     const payload = {
       description,
       category,
-      amount: Number(amount),
+      amount: Number(amount) || 0,
       paymentMethod,
       supplier,
       date,
@@ -488,7 +488,7 @@ export default function ExpensesPage() {
                     step="0.5"
                     required
                     value={amount}
-                    onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setAmount(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold"
                   />
                 </div>

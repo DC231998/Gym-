@@ -35,12 +35,12 @@ export default function PrintersPage() {
   const [brand, setBrand] = useState('Bambu Lab');
   const [model, setModel] = useState('P1S Combo');
   const [name, setName] = useState('Bambu Lab P1S Combo Principal');
-  const [purchasePrice, setPurchasePrice] = useState<number>(21999);
+  const [purchasePrice, setPurchasePrice] = useState<number | string>(21999);
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [powerWatts, setPowerWatts] = useState<number>(150);
-  const [accumulatedHours, setAccumulatedHours] = useState<number>(342.5);
-  const [lifespanHours, setLifespanHours] = useState<number>(6000);
-  const [residualValue, setResidualValue] = useState<number>(4000);
+  const [powerWatts, setPowerWatts] = useState<number | string>(150);
+  const [accumulatedHours, setAccumulatedHours] = useState<number | string>(342.5);
+  const [lifespanHours, setLifespanHours] = useState<number | string>(6000);
+  const [residualValue, setResidualValue] = useState<number | string>(4000);
   const [depreciationEnabled, setDepreciationEnabled] = useState<boolean>(true);
   const [notes, setNotes] = useState('');
 
@@ -48,10 +48,10 @@ export default function PrintersPage() {
   const [isMaintModalOpen, setIsMaintModalOpen] = useState(false);
   const [activePrinterForMaint, setActivePrinterForMaint] = useState<any | null>(null);
   const [maintType, setMaintType] = useState('Lubricación de varillas de carbono y husillos Z');
-  const [maintCost, setMaintCost] = useState<number>(0);
-  const [maintHours, setMaintHours] = useState<number>(342);
+  const [maintCost, setMaintCost] = useState<number | string>(0);
+  const [maintHours, setMaintHours] = useState<number | string>(342);
   const [maintDesc, setMaintDesc] = useState('');
-  const [maintNextHours, setMaintNextHours] = useState<number>(500);
+  const [maintNextHours, setMaintNextHours] = useState<number | string>(500);
 
   useEffect(() => {
     loadPrinters();
@@ -110,12 +110,12 @@ export default function PrintersPage() {
       brand,
       model,
       name,
-      purchasePrice: Number(purchasePrice),
+      purchasePrice: Number(purchasePrice) || 0,
       purchaseDate,
-      powerWatts: Number(powerWatts),
-      accumulatedHours: Number(accumulatedHours),
-      lifespanHours: Number(lifespanHours),
-      residualValue: Number(residualValue),
+      powerWatts: Number(powerWatts) || 0,
+      accumulatedHours: Number(accumulatedHours) || 0,
+      lifespanHours: Number(lifespanHours) > 0 ? Number(lifespanHours) : 6000,
+      residualValue: Number(residualValue) || 0,
       depreciationEnabled,
       notes,
     };
@@ -428,7 +428,7 @@ export default function PrintersPage() {
                     type="number"
                     step="0.5"
                     value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -437,7 +437,7 @@ export default function PrintersPage() {
                   <input
                     type="number"
                     value={powerWatts}
-                    onChange={(e) => setPowerWatts(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setPowerWatts(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -462,7 +462,7 @@ export default function PrintersPage() {
                       <input
                         type="number"
                         value={lifespanHours}
-                        onChange={(e) => setLifespanHours(parseFloat(e.target.value) || 6000)}
+                        onChange={(e) => setLifespanHours(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono"
                       />
                     </div>
@@ -471,7 +471,7 @@ export default function PrintersPage() {
                       <input
                         type="number"
                         value={residualValue}
-                        onChange={(e) => setResidualValue(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setResidualValue(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono"
                       />
                     </div>
@@ -480,7 +480,7 @@ export default function PrintersPage() {
                       <input
                         type="number"
                         value={accumulatedHours}
-                        onChange={(e) => setAccumulatedHours(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setAccumulatedHours(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono"
                       />
                     </div>
@@ -542,7 +542,7 @@ export default function PrintersPage() {
                     type="number"
                     step="0.5"
                     value={maintCost}
-                    onChange={(e) => setMaintCost(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setMaintCost(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -551,7 +551,7 @@ export default function PrintersPage() {
                   <input
                     type="number"
                     value={maintHours}
-                    onChange={(e) => setMaintHours(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setMaintHours(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
@@ -573,7 +573,7 @@ export default function PrintersPage() {
                 <input
                   type="number"
                   value={maintNextHours}
-                  onChange={(e) => setMaintNextHours(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setMaintNextHours(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                 />
               </div>
