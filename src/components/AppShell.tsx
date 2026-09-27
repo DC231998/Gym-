@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -10,6 +11,7 @@ interface AppShellProps {
 }
 
 export default function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState('3D Business Manager');
   const [whatsapp, setWhatsapp] = useState('4431234567');
@@ -25,6 +27,10 @@ export default function AppShell({ children }: AppShellProps) {
       })
       .catch((err) => console.error('Error fetching settings in AppShell:', err));
   }, []);
+
+  if (pathname === '/login') {
+    return <div className="min-h-screen bg-slate-950 text-slate-100">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-brand-500/30 selection:text-brand-200">

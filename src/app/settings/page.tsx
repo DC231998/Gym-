@@ -18,6 +18,7 @@ import {
   Mail,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/calculations';
+import TeamManagement from '@/components/settings/TeamManagement';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -190,6 +191,8 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      <TeamManagement />
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* 1. INFORMACIÓN DEL NEGOCIO */}
