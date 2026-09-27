@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Cpu, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 
 type Mode = 'login' | 'register';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,15 +33,16 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError(json.error || 'Error al autenticar');
+        setLoading(false);
         return;
       }
 
-      // Session cookie set by server — redirect to dashboard
-      router.push('/');
-      router.refresh();
+      // Full page navigation so the browser sends the session cookie on the
+      // next HTTP request — avoids the race condition where router.push()
+      // navigates client-side before the Edge middleware sees the new cookie.
+      window.location.href = '/';
     } catch (err: any) {
       setError('Error de conexión. Intenta de nuevo.');
-    } finally {
       setLoading(false);
     }
   };
