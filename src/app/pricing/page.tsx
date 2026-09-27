@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Calculator,
@@ -21,7 +21,7 @@ import FilamentVisualSelector, { FilamentOption } from '@/components/FilamentVis
 import VisualColorPicker from '@/components/VisualColorPicker';
 import { calculateRealProductPricing, formatCurrency } from '@/lib/calculations';
 
-export default function PricingCalculatorPage() {
+function PricingCalculatorInner() {
   const searchParams = useSearchParams();
   const didAutoSelect = useRef(false);
 
@@ -793,5 +793,13 @@ export default function PricingCalculatorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PricingCalculatorPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-400 text-sm">Cargando fijador de precios...</div>}>
+      <PricingCalculatorInner />
+    </Suspense>
   );
 }
