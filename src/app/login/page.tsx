@@ -10,6 +10,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [companyMode, setCompanyMode] = useState<'create' | 'join'>('create');
+  const [companyName, setCompanyName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +25,12 @@ export default function LoginPage() {
 
     try {
       const body: Record<string, string> = { action: mode, email, password };
-      if (mode === 'register') body.name = name;
+      if (mode === 'register') {
+        body.name = name;
+        body.companyMode = companyMode;
+        if (companyMode === 'create') body.companyName = companyName;
+        if (companyMode === 'join') body.inviteCode = inviteCode;
+      }
 
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -92,20 +101,62 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name (register only) */}
             {mode === 'register' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Nombre completo
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej: Juan Pérez"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500 transition-colors"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Nombre completo
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500 transition-colors"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    ¿Qué deseas hacer?
+                  </label>
+                  <div className="flex gap-2 mb-3">
+                    <label className={`flex-1 border rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition-colors ${companyMode === 'create' ? 'bg-brand-950/30 border-brand-500 text-brand-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}>
+                      <input type="radio" className="sr-only" checked={companyMode === 'create'} onChange={() => setCompanyMode('create')} />
+                      <span className="text-xs font-bold text-center">Crear Empresa</span>
+                    </label>
+                    <label className={`flex-1 border rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition-colors ${companyMode === 'join' ? 'bg-brand-950/30 border-brand-500 text-brand-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}>
+                      <input type="radio" className="sr-only" checked={companyMode === 'join'} onChange={() => setCompanyMode('join')} />
+                      <span className="text-xs font-bold text-center">Unirme con Código</span>
+                    </label>
+                  </div>
+
+                  {companyMode === 'create' ? (
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="Nombre de tu empresa (ej. 3D Print Mx)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500 transition-colors"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value)}
+                        placeholder="Código de invitación (ej. clm...)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-500 transition-colors"
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Email */}
