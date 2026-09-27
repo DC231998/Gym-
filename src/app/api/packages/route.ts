@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { calculatePackageMetrics } from '@/lib/calculations';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const packages = await prisma.package.findMany({
+      where: { companyId: session.companyId },
       include: {
         items: {
           include: {
@@ -24,6 +31,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.name || !Array.isArray(data.items) || data.items.length === 0) {
       return NextResponse.json({ error: 'Nombre y al menos un producto son requeridos' }, { status: 400 });
@@ -44,6 +56,7 @@ export async function POST(request: Request) {
 
     const pkg = await prisma.package.create({
       data: {
+        companyId: session.companyId,
         name: data.name,
         sku,
         description: data.description || '',
@@ -70,8 +83,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const created = await prisma.package.findUnique({
-      where: { id: pkg.id },
+    const created = await prisma.package.findFirst({
+      where: { id: pkg.id, companyId: session.companyId },
       include: { items: { include: { product: { include: { images: true } } } } },
     });
 
@@ -83,8 +96,21 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
+
+    const existing = await prisma.package.findFirst({
+      where: { id: data.id, companyId: session.companyId }
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 });
+    }
 
     if (Array.isArray(data.items) && data.items.length > 0) {
       await prisma.packageItem.deleteMany({ where: { packageId: data.id } });
@@ -111,8 +137,8 @@ export async function PUT(request: Request) {
       Number(data.discountValue || 0)
     );
 
-    const updated = await prisma.package.update({
-      where: { id: data.id },
+    await prisma.package.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         name: data.name,
         sku: data.sku,
@@ -137,11 +163,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.package.delete({ where: { id } });
+    await prisma.package.deleteMany({ where: { id, companyId: session.companyId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

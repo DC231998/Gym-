@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { calculateFilamentPricePerGram } from '@/lib/calculations';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const filaments = await prisma.filament.findMany({
+      where: { companyId: session.companyId },
       include: {
         purchases: {
           orderBy: { purchaseDate: 'desc' },
@@ -20,6 +27,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.brand || !data.materialType || !data.colorName) {
       return NextResponse.json({ error: 'Marca, tipo y color son requeridos' }, { status: 400 });
@@ -32,6 +44,7 @@ export async function POST(request: Request) {
 
     const filament = await prisma.filament.create({
       data: {
+        companyId: session.companyId,
         brand: data.brand,
         materialType: data.materialType,
         name: data.name || `${data.brand} ${data.materialType} ${data.colorName}`,
@@ -54,6 +67,7 @@ export async function POST(request: Request) {
     // Record initial inventory movement
     await prisma.inventoryMovement.create({
       data: {
+        companyId: session.companyId,
         itemType: 'filament',
         itemId: filament.id,
         movementType: 'entrada',
@@ -72,10 +86,15 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    const current = await prisma.filament.findUnique({ where: { id: data.id } });
+    const current = await prisma.filament.findFirst({ where: { id: data.id, companyId: session.companyId } });
     if (!current) return NextResponse.json({ error: 'Filamento no encontrado' }, { status: 404 });
 
     const purchasePrice = data.purchasePrice !== undefined ? Number(data.purchasePrice) : current.purchasePrice;
@@ -88,6 +107,7 @@ export async function PUT(request: Request) {
       const diff = newAvailableGrams - current.availableGrams;
       await prisma.inventoryMovement.create({
         data: {
+          companyId: session.companyId,
           itemType: 'filament',
           itemId: current.id,
           movementType: diff >= 0 ? 'entrada' : 'ajuste',
@@ -99,8 +119,8 @@ export async function PUT(request: Request) {
       });
     }
 
-    const updated = await prisma.filament.update({
-      where: { id: data.id },
+    await prisma.filament.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         brand: data.brand,
         materialType: data.materialType,
@@ -120,6 +140,7 @@ export async function PUT(request: Request) {
       },
     });
 
+    const updated = await prisma.filament.findFirst({ where: { id: data.id, companyId: session.companyId } });
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -128,11 +149,19 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.filament.delete({ where: { id } });
+    const current = await prisma.filament.findFirst({ where: { id, companyId: session.companyId } });
+    if (!current) return NextResponse.json({ error: 'Filamento no encontrado' }, { status: 404 });
+
+    await prisma.filament.deleteMany({ where: { id, companyId: session.companyId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

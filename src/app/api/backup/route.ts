@@ -1,23 +1,29 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 const CURRENT_BACKUP_VERSION = '1.0.0';
 
 export async function GET() {
   try {
-    const settings = await prisma.businessSettings.findUnique({ where: { id: 'default' } });
-    const printers = await prisma.printer.findMany({ include: { maintenances: true } });
-    const filaments = await prisma.filament.findMany({ include: { purchases: true } });
-    const categories = await prisma.category.findMany();
-    const seasons = await prisma.season.findMany();
-    const products = await prisma.product.findMany({ include: { images: true } });
-    const packages = await prisma.package.findMany({ include: { items: true } });
-    const customers = await prisma.customer.findMany();
-    const sales = await prisma.sale.findMany({ include: { items: true, payments: true } });
-    const expenses = await prisma.expense.findMany();
-    const purchases = await prisma.purchaseOrder.findMany();
-    const inventoryMovements = await prisma.inventoryMovement.findMany();
-    const quotes = await prisma.quote.findMany({ include: { items: true } });
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const settings = await prisma.businessSettings.findFirst({ where: { id: 'default', companyId: session.companyId } });
+    const printers = await prisma.printer.findMany({ where: { companyId: session.companyId }, include: { maintenances: true } });
+    const filaments = await prisma.filament.findMany({ where: { companyId: session.companyId }, include: { purchases: true } });
+    const categories = await prisma.category.findMany({ where: { companyId: session.companyId } });
+    const seasons = await prisma.season.findMany({ where: { companyId: session.companyId } });
+    const products = await prisma.product.findMany({ where: { companyId: session.companyId }, include: { images: true } });
+    const packages = await prisma.package.findMany({ where: { companyId: session.companyId }, include: { items: true } });
+    const customers = await prisma.customer.findMany({ where: { companyId: session.companyId } });
+    const sales = await prisma.sale.findMany({ where: { companyId: session.companyId }, include: { items: true, payments: true } });
+    const expenses = await prisma.expense.findMany({ where: { companyId: session.companyId } });
+    const purchases = await prisma.purchaseOrder.findMany({ where: { companyId: session.companyId } });
+    const inventoryMovements = await prisma.inventoryMovement.findMany({ where: { companyId: session.companyId } });
+    const quotes = await prisma.quote.findMany({ where: { companyId: session.companyId }, include: { items: true } });
 
     const backupData = {
       backupVersion: CURRENT_BACKUP_VERSION,
@@ -54,6 +60,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { mode, backup } = body; // mode: 'replace' | 'merge'
 
@@ -68,46 +79,62 @@ export async function POST(request: Request) {
 
     if (mode === 'replace') {
       // Clean all tables safely in foreign key order
-      await prisma.quoteItem.deleteMany();
-      await prisma.quote.deleteMany();
-      await prisma.payment.deleteMany();
-      await prisma.saleItem.deleteMany();
-      await prisma.sale.deleteMany();
-      await prisma.inventoryMovement.deleteMany();
-      await prisma.expense.deleteMany();
-      await prisma.purchaseOrder.deleteMany();
-      await prisma.packageItem.deleteMany();
-      await prisma.package.deleteMany();
-      await prisma.productImage.deleteMany();
-      await prisma.product.deleteMany();
-      await prisma.filamentPurchase.deleteMany();
-      await prisma.filament.deleteMany();
-      await prisma.printerMaintenance.deleteMany();
-      await prisma.printer.deleteMany();
-      await prisma.customer.deleteMany();
-      await prisma.category.deleteMany();
-      await prisma.season.deleteMany();
+      await prisma.quoteItem.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.quote.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.payment.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.saleItem.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.sale.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.inventoryMovement.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.expense.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.purchaseOrder.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.packageItem.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.package.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.productImage.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.product.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.filamentPurchase.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.filament.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.printerMaintenance.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.printer.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.customer.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.category.deleteMany({ where: { companyId: session.companyId } });
+      await prisma.season.deleteMany({ where: { companyId: session.companyId } });
     }
+
+    const handleUpsert = async (model: any, id: string, rest: any) => {
+      const existing = await model.findFirst({ where: { id, companyId: session.companyId } });
+      if (existing) {
+        await model.updateMany({
+          where: { id, companyId: session.companyId },
+          data: rest,
+        });
+      } else {
+        await model.create({
+          data: { ...rest, id, companyId: session.companyId },
+        });
+      }
+    };
 
     // 1. Settings
     if (data.settings) {
       const { id, createdAt, updatedAt, ...restSettings } = data.settings;
-      await prisma.businessSettings.upsert({
-        where: { id: 'default' },
-        update: restSettings,
-        create: { id: 'default', ...restSettings },
-      });
+      const existingSettings = await prisma.businessSettings.findFirst({ where: { id: 'default', companyId: session.companyId } });
+      if (existingSettings) {
+        await prisma.businessSettings.updateMany({
+          where: { id: 'default', companyId: session.companyId },
+          data: restSettings,
+        });
+      } else {
+        await prisma.businessSettings.create({
+          data: { ...restSettings, id: 'default', companyId: session.companyId },
+        });
+      }
     }
 
     // 2. Categories
     if (Array.isArray(data.categories)) {
       for (const cat of data.categories) {
         const { products, _count, createdAt, updatedAt, ...rest } = cat;
-        await prisma.category.upsert({
-          where: { id: cat.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.category, cat.id, rest);
       }
     }
 
@@ -115,11 +142,7 @@ export async function POST(request: Request) {
     if (Array.isArray(data.seasons)) {
       for (const sea of data.seasons) {
         const { products, _count, createdAt, updatedAt, ...rest } = sea;
-        await prisma.season.upsert({
-          where: { id: sea.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.season, sea.id, rest);
       }
     }
 
@@ -127,11 +150,7 @@ export async function POST(request: Request) {
     if (Array.isArray(data.filaments)) {
       for (const fil of data.filaments) {
         const { purchases, products, printJobs, createdAt, updatedAt, ...rest } = fil;
-        await prisma.filament.upsert({
-          where: { id: fil.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.filament, fil.id, rest);
       }
     }
 
@@ -139,19 +158,11 @@ export async function POST(request: Request) {
     if (Array.isArray(data.printers)) {
       for (const pr of data.printers) {
         const { maintenances, printJobs, createdAt, updatedAt, ...rest } = pr;
-        await prisma.printer.upsert({
-          where: { id: pr.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.printer, pr.id, rest);
         if (Array.isArray(maintenances)) {
           for (const m of maintenances) {
             const { createdAt, updatedAt, ...mRest } = m;
-            await prisma.printerMaintenance.upsert({
-              where: { id: m.id },
-              update: mRest,
-              create: mRest,
-            });
+            await handleUpsert(prisma.printerMaintenance, m.id, mRest);
           }
         }
       }
@@ -161,19 +172,11 @@ export async function POST(request: Request) {
     if (Array.isArray(data.products)) {
       for (const p of data.products) {
         const { images, packageItems, saleItems, quoteItems, printJobs, category, season, filament, createdAt, updatedAt, ...rest } = p;
-        await prisma.product.upsert({
-          where: { id: p.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.product, p.id, rest);
         if (Array.isArray(images)) {
           for (const img of images) {
             const { createdAt, ...imgRest } = img;
-            await prisma.productImage.upsert({
-              where: { id: img.id },
-              update: imgRest,
-              create: imgRest,
-            });
+            await handleUpsert(prisma.productImage, img.id, imgRest);
           }
         }
       }
@@ -183,11 +186,7 @@ export async function POST(request: Request) {
     if (Array.isArray(data.customers)) {
       for (const c of data.customers) {
         const { sales, quotes, createdAt, updatedAt, ...rest } = c;
-        await prisma.customer.upsert({
-          where: { id: c.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.customer, c.id, rest);
       }
     }
 
@@ -195,18 +194,11 @@ export async function POST(request: Request) {
     if (Array.isArray(data.packages)) {
       for (const pkg of data.packages) {
         const { items, saleItems, quoteItems, createdAt, updatedAt, ...rest } = pkg;
-        await prisma.package.upsert({
-          where: { id: pkg.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.package, pkg.id, rest);
         if (Array.isArray(items)) {
           for (const it of items) {
-            await prisma.packageItem.upsert({
-              where: { id: it.id },
-              update: it,
-              create: it,
-            });
+            const { createdAt, updatedAt, ...itRest } = it;
+            await handleUpsert(prisma.packageItem, it.id, itRest);
           }
         }
       }
@@ -216,29 +208,17 @@ export async function POST(request: Request) {
     if (Array.isArray(data.sales)) {
       for (const s of data.sales) {
         const { items, payments, customer, createdAt, updatedAt, ...rest } = s;
-        await prisma.sale.upsert({
-          where: { id: s.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.sale, s.id, rest);
         if (Array.isArray(items)) {
           for (const it of items) {
             const { createdAt, ...itRest } = it;
-            await prisma.saleItem.upsert({
-              where: { id: it.id },
-              update: itRest,
-              create: itRest,
-            });
+            await handleUpsert(prisma.saleItem, it.id, itRest);
           }
         }
         if (Array.isArray(payments)) {
           for (const pay of payments) {
             const { createdAt, ...payRest } = pay;
-            await prisma.payment.upsert({
-              where: { id: pay.id },
-              update: payRest,
-              create: payRest,
-            });
+            await handleUpsert(prisma.payment, pay.id, payRest);
           }
         }
       }
@@ -248,11 +228,7 @@ export async function POST(request: Request) {
     if (Array.isArray(data.expenses)) {
       for (const ex of data.expenses) {
         const { createdAt, updatedAt, ...rest } = ex;
-        await prisma.expense.upsert({
-          where: { id: ex.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.expense, ex.id, rest);
       }
     }
 
@@ -260,11 +236,7 @@ export async function POST(request: Request) {
     if (Array.isArray(data.purchases)) {
       for (const po of data.purchases) {
         const { createdAt, updatedAt, ...rest } = po;
-        await prisma.purchaseOrder.upsert({
-          where: { id: po.id },
-          update: rest,
-          create: rest,
-        });
+        await handleUpsert(prisma.purchaseOrder, po.id, rest);
       }
     }
 

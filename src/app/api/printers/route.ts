@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const printers = await prisma.printer.findMany({
+      where: { companyId: session.companyId },
       include: {
         maintenances: {
           orderBy: { date: 'desc' },
@@ -19,6 +26,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.brand || !data.model || !data.name) {
       return NextResponse.json({ error: 'Marca, modelo y nombre son obligatorios' }, { status: 400 });
@@ -26,6 +38,7 @@ export async function POST(request: Request) {
 
     const printer = await prisma.printer.create({
       data: {
+        companyId: session.companyId,
         brand: data.brand,
         model: data.model,
         name: data.name,
@@ -49,11 +62,21 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    const updated = await prisma.printer.update({
-      where: { id: data.id },
+    const existing = await prisma.printer.findFirst({
+      where: { id: data.id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    await prisma.printer.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         brand: data.brand,
         model: data.model,
@@ -69,6 +92,10 @@ export async function PUT(request: Request) {
       },
     });
 
+    const updated = await prisma.printer.findFirst({
+      where: { id: data.id, companyId: session.companyId }
+    });
+
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,11 +104,19 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.printer.delete({ where: { id } });
+    await prisma.printer.deleteMany({
+      where: { id, companyId: session.companyId }
+    });
+    
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

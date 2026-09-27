@@ -1,26 +1,32 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function DELETE() {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Delete transactions and demo records
-    await prisma.quoteItem.deleteMany();
-    await prisma.quote.deleteMany();
-    await prisma.payment.deleteMany();
-    await prisma.saleItem.deleteMany();
-    await prisma.sale.deleteMany();
-    await prisma.inventoryMovement.deleteMany();
-    await prisma.expense.deleteMany();
-    await prisma.purchaseOrder.deleteMany();
-    await prisma.packageItem.deleteMany();
-    await prisma.package.deleteMany();
-    await prisma.productImage.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.filamentPurchase.deleteMany();
-    await prisma.filament.deleteMany();
-    await prisma.printerMaintenance.deleteMany();
-    await prisma.printer.deleteMany();
-    await prisma.customer.deleteMany();
+    await prisma.quoteItem.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.quote.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.payment.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.saleItem.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.sale.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.inventoryMovement.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.expense.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.purchaseOrder.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.packageItem.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.package.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.productImage.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.product.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.filamentPurchase.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.filament.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.printerMaintenance.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.printer.deleteMany({ where: { companyId: session.companyId } });
+    await prisma.customer.deleteMany({ where: { companyId: session.companyId } });
 
     return NextResponse.json({ success: true, message: 'Todos los datos demo y transacciones han sido eliminados.' });
   } catch (error: any) {

@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
     const seasonId = searchParams.get('seasonId');
     const search = searchParams.get('search');
 
-    const where: any = {};
+    const where: any = { companyId: session.companyId };
     if (categoryId && categoryId !== 'all') where.categoryId = categoryId;
     if (seasonId && seasonId !== 'all') where.seasonId = seasonId;
     if (search) {
@@ -40,6 +46,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.name || !data.categoryId || !data.seasonId) {
       return NextResponse.json({ error: 'Nombre, categoría y temporada son requeridos' }, { status: 400 });
@@ -49,13 +60,14 @@ export async function POST(request: Request) {
     const sku = data.sku?.trim() || `PRD-${Date.now().toString(36).toUpperCase()}`;
 
     // Verify unique SKU
-    const existingSku = await prisma.product.findUnique({ where: { sku } });
+    const existingSku = await prisma.product.findFirst({ where: { sku, companyId: session.companyId } });
     if (existingSku) {
       return NextResponse.json({ error: `El SKU ${sku} ya existe` }, { status: 400 });
     }
 
     const product = await prisma.product.create({
       data: {
+        companyId: session.companyId,
         sku,
         name: data.name,
         description: data.description || '',
@@ -90,6 +102,7 @@ export async function POST(request: Request) {
         if (url) {
           await prisma.productImage.create({
             data: {
+              companyId: session.companyId,
               productId: product.id,
               url,
               isPrimary: i === 0 || img.isPrimary,
@@ -104,6 +117,7 @@ export async function POST(request: Request) {
     if (Number(data.stock) > 0) {
       await prisma.inventoryMovement.create({
         data: {
+          companyId: session.companyId,
           itemType: 'product',
           itemId: product.id,
           movementType: 'entrada',
@@ -115,8 +129,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const created = await prisma.product.findUnique({
-      where: { id: product.id },
+    const created = await prisma.product.findFirst({
+      where: { id: product.id, companyId: session.companyId },
       include: { category: true, season: true, filament: true, images: true },
     });
 
@@ -128,10 +142,15 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    const current = await prisma.product.findUnique({ where: { id: data.id } });
+    const current = await prisma.product.findFirst({ where: { id: data.id, companyId: session.companyId } });
     if (!current) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
 
     // Track stock change if applicable
@@ -140,6 +159,7 @@ export async function PUT(request: Request) {
       const diff = newStock - current.stock;
       await prisma.inventoryMovement.create({
         data: {
+          companyId: session.companyId,
           itemType: 'product',
           itemId: current.id,
           movementType: diff >= 0 ? 'entrada' : 'ajuste',
@@ -151,8 +171,8 @@ export async function PUT(request: Request) {
       });
     }
 
-    const updated = await prisma.product.update({
-      where: { id: data.id },
+    await prisma.product.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         sku: data.sku,
         name: data.name,
@@ -189,6 +209,7 @@ export async function PUT(request: Request) {
         if (url) {
           await prisma.productImage.create({
             data: {
+              companyId: session.companyId,
               productId: data.id,
               url,
               isPrimary: i === 0 || img.isPrimary,
@@ -199,8 +220,8 @@ export async function PUT(request: Request) {
       }
     }
 
-    const result = await prisma.product.findUnique({
-      where: { id: data.id },
+    const result = await prisma.product.findFirst({
+      where: { id: data.id, companyId: session.companyId },
       include: { category: true, season: true, filament: true, images: true },
     });
 
@@ -212,11 +233,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.product.deleteMany({ where: { id, companyId: session.companyId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

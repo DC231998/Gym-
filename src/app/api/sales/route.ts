@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { calculateProfitDistribution, calculateSaleBalance } from '@/lib/calculations';
+import { getSession } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const customerId = searchParams.get('customerId');
 
-    const where: any = {};
+    const where: any = { companyId: session.companyId };
     if (status && status !== 'all') where.status = status;
     if (customerId && customerId !== 'all') where.customerId = customerId;
 
@@ -39,13 +45,18 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!Array.isArray(data.items) || data.items.length === 0) {
       return NextResponse.json({ error: 'La venta debe contener al menos un producto o paquete' }, { status: 400 });
     }
 
     // Get business settings for current tariff & distribution percentages
-    const settings = (await prisma.businessSettings.findUnique({ where: { id: 'default' } })) || {
+    const settings = (await prisma.businessSettings.findFirst({ where: { id: 'default', companyId: session.companyId } })) || {
       defaultElectricityRate: 2.15,
       profitReinvestmentPercent: 40,
       profitMaintenancePercent: 20,
@@ -53,7 +64,7 @@ export async function POST(request: Request) {
     };
 
     // Generate unique sale number
-    const count = await prisma.sale.count();
+    const count = await prisma.sale.count({ where: { companyId: session.companyId } });
     const currentYear = new Date().getFullYear();
     const saleNumber = `VEN-${currentYear}-${String(count + 1).padStart(4, '0')}`;
 
@@ -84,6 +95,7 @@ export async function POST(request: Request) {
 
     const sale = await prisma.sale.create({
       data: {
+        companyId: session.companyId,
         saleNumber,
         date: data.date ? new Date(data.date) : new Date(),
         customerId: data.customerId || null,
@@ -111,6 +123,7 @@ export async function POST(request: Request) {
 
       await prisma.saleItem.create({
         data: {
+          companyId: session.companyId,
           saleId: sale.id,
           productId: item.productId || null,
           packageId: item.packageId || null,
@@ -132,15 +145,16 @@ export async function POST(request: Request) {
 
       // Deduct product stock if product sold directly
       if (item.productId) {
-        const prod = await prisma.product.findUnique({ where: { id: item.productId } });
+        const prod = await prisma.product.findFirst({ where: { id: item.productId, companyId: session.companyId } });
         if (prod && prod.stock > 0) {
           const newStock = Math.max(0, prod.stock - q);
-          await prisma.product.update({
-            where: { id: prod.id },
+          await prisma.product.updateMany({
+            where: { id: prod.id, companyId: session.companyId },
             data: { stock: newStock },
           });
           await prisma.inventoryMovement.create({
             data: {
+              companyId: session.companyId,
               itemType: 'product',
               itemId: prod.id,
               movementType: 'venta',
@@ -159,6 +173,7 @@ export async function POST(request: Request) {
     if (initialPaymentAmount > 0) {
       await prisma.payment.create({
         data: {
+          companyId: session.companyId,
           saleId: sale.id,
           date: new Date(),
           amount: initialPaymentAmount,
@@ -169,8 +184,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const created = await prisma.sale.findUnique({
-      where: { id: sale.id },
+    const created = await prisma.sale.findFirst({
+      where: { id: sale.id, companyId: session.companyId },
       include: {
         customer: true,
         items: { include: { product: true, package: true } },
@@ -186,17 +201,34 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    const updated = await prisma.sale.update({
-      where: { id: data.id },
+    const existing = await prisma.sale.findFirst({
+      where: { id: data.id, companyId: session.companyId }
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    await prisma.sale.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         status: data.status,
         notes: data.notes,
         customerId: data.customerId,
         customerName: data.customerName,
-      },
+      }
+    });
+
+    const updated = await prisma.sale.findFirst({
+      where: { id: data.id, companyId: session.companyId },
       include: {
         customer: true,
         items: { include: { product: true, package: true } },
@@ -212,11 +244,24 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.sale.delete({ where: { id } });
+    const existing = await prisma.sale.findFirst({
+      where: { id, companyId: session.companyId }
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    await prisma.sale.deleteMany({ where: { id, companyId: session.companyId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

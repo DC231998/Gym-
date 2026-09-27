@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const filaments = await prisma.filament.findMany({
+      where: { companyId: session.companyId },
       select: {
         id: true,
         brand: true,
@@ -19,6 +26,7 @@ export async function GET() {
     });
 
     const products = await prisma.product.findMany({
+      where: { companyId: session.companyId },
       select: {
         id: true,
         sku: true,
@@ -33,6 +41,7 @@ export async function GET() {
     });
 
     const movements = await prisma.inventoryMovement.findMany({
+      where: { companyId: session.companyId },
       take: 50,
       orderBy: { createdAt: 'desc' },
     });
@@ -55,6 +64,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     const { itemType, itemId, movementType, quantity, reason } = data;
 
@@ -66,7 +80,7 @@ export async function POST(request: Request) {
     let newStock = 0;
 
     if (itemType === 'filament') {
-      const fil = await prisma.filament.findUnique({ where: { id: itemId } });
+      const fil = await prisma.filament.findFirst({ where: { id: itemId, companyId: session.companyId } });
       if (!fil) return NextResponse.json({ error: 'Filamento no encontrado' }, { status: 404 });
       previousStock = fil.availableGrams;
 
@@ -76,12 +90,12 @@ export async function POST(request: Request) {
         newStock = Math.max(0, previousStock - Number(quantity));
       }
 
-      await prisma.filament.update({
-        where: { id: itemId },
+      await prisma.filament.updateMany({
+        where: { id: itemId, companyId: session.companyId },
         data: { availableGrams: newStock },
       });
     } else {
-      const prod = await prisma.product.findUnique({ where: { id: itemId } });
+      const prod = await prisma.product.findFirst({ where: { id: itemId, companyId: session.companyId } });
       if (!prod) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
       previousStock = prod.stock;
 
@@ -91,8 +105,8 @@ export async function POST(request: Request) {
         newStock = Math.max(0, previousStock - Number(quantity));
       }
 
-      await prisma.product.update({
-        where: { id: itemId },
+      await prisma.product.updateMany({
+        where: { id: itemId, companyId: session.companyId },
         data: { stock: Math.floor(newStock) },
       });
     }
@@ -106,6 +120,7 @@ export async function POST(request: Request) {
         previousStock,
         newStock,
         reason: reason || 'Ajuste manual de inventario',
+        companyId: session.companyId,
       },
     });
 

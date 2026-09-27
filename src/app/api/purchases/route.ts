@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    const where: any = {};
+    const where: any = { companyId: session.companyId };
     if (status && status !== 'all') where.status = status;
 
     const purchases = await prisma.purchaseOrder.findMany({
@@ -22,11 +28,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.itemTitle) return NextResponse.json({ error: 'Título del artículo es requerido' }, { status: 400 });
 
     const po = await prisma.purchaseOrder.create({
       data: {
+        companyId: session.companyId,
         itemTitle: data.itemTitle,
         supplier: data.supplier || '',
         quantity: Number(data.quantity || 1),
@@ -47,16 +59,22 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    const current = await prisma.purchaseOrder.findUnique({ where: { id: data.id } });
+    const current = await prisma.purchaseOrder.findFirst({ where: { id: data.id, companyId: session.companyId } });
     if (!current) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
 
     // If transitioned to "Comprado" and requested to register as expense
     if (data.status === 'Comprado' && current.status !== 'Comprado' && data.createExpense) {
       await prisma.expense.create({
         data: {
+          companyId: session.companyId,
           category: current.category || 'Otros',
           description: `Compra: ${current.itemTitle} (x${current.quantity})`,
           amount: current.estimatedPrice,
@@ -67,8 +85,8 @@ export async function PUT(request: Request) {
       });
     }
 
-    const updated = await prisma.purchaseOrder.update({
-      where: { id: data.id },
+    await prisma.purchaseOrder.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         itemTitle: data.itemTitle,
         supplier: data.supplier,
@@ -82,6 +100,8 @@ export async function PUT(request: Request) {
       },
     });
 
+    const updated = await prisma.purchaseOrder.findFirst({ where: { id: data.id, companyId: session.companyId } });
+
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -90,11 +110,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.purchaseOrder.delete({ where: { id } });
+    await prisma.purchaseOrder.deleteMany({ where: { id, companyId: session.companyId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

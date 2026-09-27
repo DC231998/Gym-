@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { calculateSaleBalance } from '@/lib/calculations';
+import { getSession } from '@/lib/session';
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const saleId = params.id;
     const data = await request.json();
 
@@ -15,8 +21,8 @@ export async function POST(
       return NextResponse.json({ error: 'El monto del pago debe ser mayor a 0' }, { status: 400 });
     }
 
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
+    const sale = await prisma.sale.findFirst({
+      where: { id: saleId, companyId: session.companyId },
       include: { payments: true },
     });
 
@@ -39,6 +45,7 @@ export async function POST(
     const payment = await prisma.payment.create({
       data: {
         saleId,
+        companyId: session.companyId,
         date: data.date ? new Date(data.date) : new Date(),
         amount: paymentAmount,
         method: data.method || 'Efectivo',
@@ -56,13 +63,17 @@ export async function POST(
       newStatus = sale.status === 'Listo' ? 'Entregado' : 'En producción';
     }
 
-    const updatedSale = await prisma.sale.update({
-      where: { id: saleId },
+    await prisma.sale.updateMany({
+      where: { id: saleId, companyId: session.companyId },
       data: {
         paidAmount: newPaidAmount,
         pendingAmount: pending,
         status: newStatus,
       },
+    });
+
+    const updatedSale = await prisma.sale.findFirst({
+      where: { id: saleId, companyId: session.companyId },
       include: {
         payments: { orderBy: { date: 'asc' } },
         items: true,
@@ -81,29 +92,45 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const saleId = params.id;
     const { searchParams } = new URL(request.url);
     const paymentId = searchParams.get('paymentId');
 
     if (!paymentId) return NextResponse.json({ error: 'paymentId es requerido' }, { status: 400 });
 
-    await prisma.payment.delete({ where: { id: paymentId } });
+    await prisma.payment.deleteMany({
+      where: { id: paymentId, companyId: session.companyId }
+    });
 
     // Recalculate sale balance
-    const payments = await prisma.payment.findMany({ where: { saleId } });
+    const payments = await prisma.payment.findMany({ 
+      where: { saleId, companyId: session.companyId } 
+    });
     const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
 
-    const sale = await prisma.sale.findUnique({ where: { id: saleId } });
+    const sale = await prisma.sale.findFirst({ 
+      where: { id: saleId, companyId: session.companyId } 
+    });
+    
     if (!sale) return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 });
 
     const { pending } = calculateSaleBalance(sale.total, totalPaid);
 
-    const updatedSale = await prisma.sale.update({
-      where: { id: saleId },
+    await prisma.sale.updateMany({
+      where: { id: saleId, companyId: session.companyId },
       data: {
         paidAmount: Number(totalPaid.toFixed(2)),
         pendingAmount: pending,
       },
+    });
+
+    const updatedSale = await prisma.sale.findFirst({
+      where: { id: saleId, companyId: session.companyId },
       include: {
         payments: true,
         items: true,

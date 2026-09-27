@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     const printerId = params.id;
 
@@ -15,6 +21,7 @@ export async function POST(
 
     const maintenance = await prisma.printerMaintenance.create({
       data: {
+        companyId: session.companyId,
         printerId,
         date: data.date ? new Date(data.date) : new Date(),
         type: data.type,
@@ -31,6 +38,7 @@ export async function POST(
     if (Number(data.cost) > 0) {
       await prisma.expense.create({
         data: {
+          companyId: session.companyId,
           category: 'Mantenimiento',
           description: `Mantenimiento: ${data.type} (${printerId})`,
           amount: Number(data.cost),

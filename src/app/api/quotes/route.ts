@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const quotes = await prisma.quote.findMany({
+      where: { companyId: session.companyId },
       include: {
         customer: true,
         items: {
@@ -23,12 +30,19 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!Array.isArray(data.items) || data.items.length === 0) {
       return NextResponse.json({ error: 'La cotización debe contener al menos un producto' }, { status: 400 });
     }
 
-    const count = await prisma.quote.count();
+    const count = await prisma.quote.count({
+      where: { companyId: session.companyId },
+    });
     const currentYear = new Date().getFullYear();
     const quoteNumber = `COT-${currentYear}-${String(count + 1).padStart(4, '0')}`;
 
@@ -43,6 +57,7 @@ export async function POST(request: Request) {
 
     const quote = await prisma.quote.create({
       data: {
+        companyId: session.companyId,
         quoteNumber,
         customerId: data.customerId || null,
         customerName: data.customerName || 'Público General',
@@ -86,16 +101,33 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     if (!data.id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    const updated = await prisma.quote.update({
-      where: { id: data.id },
+    const existing = await prisma.quote.findFirst({
+      where: { id: data.id, companyId: session.companyId },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    await prisma.quote.updateMany({
+      where: { id: data.id, companyId: session.companyId },
       data: {
         status: data.status,
         notes: data.notes,
         validityDays: data.validityDays !== undefined ? Number(data.validityDays) : undefined,
       },
+    });
+
+    const updated = await prisma.quote.findFirst({
+      where: { id: data.id, companyId: session.companyId },
       include: { customer: true, items: true },
     });
 
@@ -107,11 +139,19 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID es requerido' }, { status: 400 });
 
-    await prisma.quote.delete({ where: { id } });
+    await prisma.quote.deleteMany({
+      where: { id, companyId: session.companyId },
+    });
+    
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

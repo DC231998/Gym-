@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'month'; // 'today', 'week', 'month', 'year', 'all'
     const customStart = searchParams.get('start');
@@ -35,6 +41,7 @@ export async function GET(request: Request) {
     // 1. Fetch sales in date range (excluding cancelled)
     const sales = await prisma.sale.findMany({
       where: {
+        companyId: session.companyId,
         date: { gte: startDate, lte: endDate },
         status: { not: 'Cancelado' },
       },
@@ -49,6 +56,7 @@ export async function GET(request: Request) {
     // 2. Fetch expenses in range
     const expenses = await prisma.expense.findMany({
       where: {
+        companyId: session.companyId,
         date: { gte: startDate, lte: endDate },
       },
     });
@@ -78,7 +86,10 @@ export async function GET(request: Request) {
 
     // 4. Bambu Lab P1S Combo Panel
     const p1sPrinter = await prisma.printer.findFirst({
-      where: { model: { contains: 'P1S' } },
+      where: { 
+        companyId: session.companyId,
+        model: { contains: 'P1S' } 
+      },
       include: {
         maintenances: { orderBy: { date: 'desc' }, take: 5 },
       },
@@ -126,13 +137,17 @@ export async function GET(request: Request) {
 
     // 6. Filaments in stock & low stock alerts
     const allFilaments = await prisma.filament.findMany({
+      where: { companyId: session.companyId },
       orderBy: { availableGrams: 'asc' },
     });
     const lowStockFilaments = allFilaments.filter((f) => f.availableGrams <= f.minStockGrams);
 
     // 7. Pending sales & payments
     const pendingSales = await prisma.sale.findMany({
-      where: { pendingAmount: { gt: 0 } },
+      where: { 
+        companyId: session.companyId,
+        pendingAmount: { gt: 0 } 
+      },
       include: { customer: true },
       orderBy: { date: 'desc' },
       take: 6,
@@ -140,7 +155,10 @@ export async function GET(request: Request) {
 
     // 8. Upcoming purchases
     const upcomingPurchases = await prisma.purchaseOrder.findMany({
-      where: { status: 'Pendiente' },
+      where: { 
+        companyId: session.companyId,
+        status: 'Pendiente' 
+      },
       orderBy: { priority: 'asc' },
       take: 5,
     });
