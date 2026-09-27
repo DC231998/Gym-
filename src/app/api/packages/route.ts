@@ -152,6 +152,10 @@ export async function PUT(request: Request) {
         marginPercent: metrics.marginPercent,
         isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
       },
+    });
+
+    const updated = await prisma.package.findFirst({
+      where: { id: data.id, companyId: session.companyId },
       include: { items: { include: { product: { include: { images: true } } } } },
     });
 
