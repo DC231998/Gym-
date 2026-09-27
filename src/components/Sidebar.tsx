@@ -42,7 +42,7 @@ const NAV_ITEMS = [
   { href: '/expenses', label: 'Gastos y Ganancias', icon: DollarSign },
   { href: '/inventory', label: 'Inventario', icon: Boxes },
   { href: '/purchases', label: 'Próximas Compras', icon: ShoppingCart },
-  { href: '/printers', label: 'Bambu Lab P1S', icon: Printer },
+  { href: '/printers', label: 'Impresoras', icon: Printer },
   { href: '/seasons-categories', label: 'Temporadas y Cat.', icon: Layers },
   { href: '/settings', label: 'Configuración', icon: Settings },
   { href: '/backup', label: 'Respaldos JSON', icon: Database },
@@ -116,18 +116,21 @@ export default function Sidebar({ businessName = '3D Business Manager', isOpen, 
           })}
         </nav>
 
-        {/* Hardware Status Footer: Bambu Lab P1S Combo */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-900/40">
+        {/* Footer: Printers link + Build version */}
+        <div className="p-3 border-t border-slate-800/80 bg-slate-900/40 space-y-2">
           <Link
             href="/printers"
             className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors"
           >
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-bold text-slate-200 truncate">Bambu Lab P1S Combo</div>
-              <div className="text-[10px] text-slate-400 truncate">CFE Tarímbaro • $2.15/kWh</div>
+              <div className="text-[11px] font-bold text-slate-200 truncate">Parque de Impresoras</div>
+              <div className="text-[10px] text-slate-400 truncate">Mantenimiento y depreciación</div>
             </div>
           </Link>
+          <div className="px-2 text-[10px] text-slate-600 font-mono">
+            Build: {new Date(process.env.NEXT_PUBLIC_BUILD_TIME ?? Date.now()).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
       </aside>
     </>

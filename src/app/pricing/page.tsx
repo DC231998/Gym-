@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Calculator,
   Save,
@@ -21,6 +22,9 @@ import VisualColorPicker from '@/components/VisualColorPicker';
 import { calculateRealProductPricing, formatCurrency } from '@/lib/calculations';
 
 export default function PricingCalculatorPage() {
+  const searchParams = useSearchParams();
+  const didAutoSelect = useRef(false);
+
   const [products, setProducts] = useState<any[]>([]);
   const [filaments, setFilaments] = useState<FilamentOption[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -33,6 +37,7 @@ export default function PricingCalculatorPage() {
   const [selectedProductId, setSelectedProductId] = useState<string>('new');
   const [productName, setProductName] = useState('');
   const [productSku, setProductSku] = useState('');
+  const [productDescription, setProductDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [seasonId, setSeasonId] = useState('');
 
@@ -124,6 +129,17 @@ export default function PricingCalculatorPage() {
     loadData();
   }, []);
 
+  // Auto-select product from ?productId= URL query param (runs once after products load)
+  useEffect(() => {
+    if (didAutoSelect.current || products.length === 0) return;
+    const paramId = searchParams.get('productId');
+    if (paramId) {
+      didAutoSelect.current = true;
+      handleProductSelect(paramId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, searchParams]);
+
   // Sync depreciation fields whenever user picks a different printer
   const handlePrinterSelect = (id: string) => {
     setSelectedPrinterId(id);
@@ -147,6 +163,7 @@ export default function PricingCalculatorPage() {
     if (id === 'new') {
       setProductName('');
       setProductSku('');
+      setProductDescription('');
       setWeightGrams(50);
       setPrintHours(1.5);
       return;
@@ -156,6 +173,7 @@ export default function PricingCalculatorPage() {
     if (prod) {
       setProductName(prod.name);
       setProductSku(prod.sku);
+      setProductDescription(prod.description || '');
       setCategoryId(prod.categoryId);
       setSeasonId(prod.seasonId);
       setWeightGrams(prod.weightGrams);
@@ -206,6 +224,7 @@ export default function PricingCalculatorPage() {
     const payload = {
       name: productName,
       sku: productSku || `PRD-${Date.now().toString(36).toUpperCase()}`,
+      description: productDescription,
       categoryId,
       seasonId,
       primaryFilamentId: selectedFilament?.id || null,
@@ -326,6 +345,17 @@ export default function PricingCalculatorPage() {
               </div>
 
               <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">SKU / Código</label>
+                <input
+                  type="text"
+                  value={productSku}
+                  onChange={(e) => setProductSku(e.target.value)}
+                  placeholder="Ej: LLV-HEX-001 (auto si vacío)"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Categoría</label>
                 <select
                   value={categoryId}
@@ -353,6 +383,17 @@ export default function PricingCalculatorPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Descripción comercial</label>
+                <textarea
+                  rows={2}
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="Descripción para catálogo, cotizaciones y etiquetas..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                />
               </div>
             </div>
           </div>
