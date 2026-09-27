@@ -35,18 +35,19 @@ export async function POST(request: Request) {
 
       const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
       const user = await prisma.user.create({
-        data: { email, name, passwordHash, role: 'admin' },
+        data: { email, name, passwordHash, companyRole: 'owner' }, // Owner by default for now (will change in step 2)
       });
 
       const token = await signSession({
         userId: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        companyId: user.companyId,
+        companyRole: user.companyRole,
       });
 
       const res = NextResponse.json({
-        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+        user: { id: user.id, email: user.email, name: user.name, companyId: user.companyId, companyRole: user.companyRole },
       });
       res.cookies.set(createSessionCookie(token));
       return res;
@@ -89,11 +90,12 @@ export async function POST(request: Request) {
         userId: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        companyId: user.companyId,
+        companyRole: user.companyRole,
       });
 
       const res = NextResponse.json({
-        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+        user: { id: user.id, email: user.email, name: user.name, companyId: user.companyId, companyRole: user.companyRole },
       });
       res.cookies.set(createSessionCookie(token));
       return res;

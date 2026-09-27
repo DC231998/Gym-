@@ -8,18 +8,59 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  inviteCode  String   @unique @default(cuid())
+  ownerId     String
+  owner       User     @relation("CompanyOwner", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users              User[]   @relation("CompanyMembers")
+  businessSettings   BusinessSettings[]
+  printers           Printer[]
+  printerMaintenances PrinterMaintenance[]
+  filaments          Filament[]
+  filamentPurchases  FilamentPurchase[]
+  categories         Category[]
+  seasons            Season[]
+  products           Product[]
+  productImages      ProductImage[]
+  packages           Package[]
+  packageItems       PackageItem[]
+  customers          Customer[]
+  sales              Sale[]
+  saleItems          SaleItem[]
+  payments           Payment[]
+  expenses           Expense[]
+  purchaseOrders     PurchaseOrder[]
+  inventoryMovements InventoryMovement[]
+  quotes             Quote[]
+  quoteItems         QuoteItem[]
+  printJobs          PrintJob[]
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
   name         String
-  role         String   @default("admin")
+  
+  companyId    String?
+  company      Company? @relation("CompanyMembers", fields: [companyId], references: [id], onDelete: SetNull)
+  companyRole  String   @default("member") // "owner" | "member"
+  
+  ownedCompanies Company[] @relation("CompanyOwner")
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
 model BusinessSettings {
   id                          String   @id @default("default")
+  companyId                   String?
+  company                     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   businessName                String   @default("3D Business Manager")
   logoUrl                     String?
   phone                       String   @default("4430000000")
@@ -60,6 +101,8 @@ model BusinessSettings {
 }
 
 model Printer {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                  String   @id @default(cuid())
   brand               String   @default("Bambu Lab")
   model               String   @default("P1S Combo")
@@ -81,6 +124,8 @@ model Printer {
 }
 
 model PrinterMaintenance {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                        String   @id @default(cuid())
   printerId                 String
   printer                   Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
@@ -97,6 +142,8 @@ model PrinterMaintenance {
 }
 
 model Filament {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                  String   @id @default(cuid())
   brand               String   @default("Bambu Lab")
   materialType        String   @default("PLA") // PLA, PLA+, PETG, ABS, ASA, TPU, etc.
@@ -123,6 +170,8 @@ model Filament {
 }
 
 model FilamentPurchase {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                 String   @id @default(cuid())
   filamentId         String
   filament           Filament @relation(fields: [filamentId], references: [id], onDelete: Cascade)
@@ -138,6 +187,8 @@ model FilamentPurchase {
 }
 
 model Category {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id          String   @id @default(cuid())
   name        String   @unique
   slug        String   @unique
@@ -150,6 +201,8 @@ model Category {
 }
 
 model Season {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id             String   @id @default(cuid())
   name           String   @unique
   slug           String   @unique
@@ -168,6 +221,8 @@ model Season {
 }
 
 model Product {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                 String   @id @default(cuid())
   sku                String   @unique
   name               String
@@ -209,6 +264,8 @@ model Product {
 }
 
 model ProductImage {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id           String   @id @default(cuid())
   productId    String
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -219,6 +276,8 @@ model ProductImage {
 }
 
 model Package {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id            String   @id @default(cuid())
   name          String
   sku           String   @unique
@@ -240,6 +299,8 @@ model Package {
 }
 
 model PackageItem {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id        String   @id @default(cuid())
   packageId String
   package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
@@ -251,6 +312,8 @@ model PackageItem {
 }
 
 model Customer {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id           String   @id @default(cuid())
   name         String
   phone        String?
@@ -269,6 +332,8 @@ model Customer {
 }
 
 model Sale {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                   String     @id @default(cuid())
   saleNumber           String     @unique
   date                 DateTime   @default(now())
@@ -298,6 +363,8 @@ model Sale {
 }
 
 model SaleItem {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                       String   @id @default(cuid())
   saleId                   String
   sale                     Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -324,6 +391,8 @@ model SaleItem {
 }
 
 model Payment {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id         String   @id @default(cuid())
   saleId     String
   sale       Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -336,6 +405,8 @@ model Payment {
 }
 
 model Expense {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id            String   @id @default(cuid())
   date          DateTime @default(now())
   category      String   // Filamento, Electricidad, Mantenimiento, Herramientas, Empaque, Envíos, Software, Otros
@@ -350,6 +421,8 @@ model Expense {
 }
 
 model PurchaseOrder {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id             String   @id @default(cuid())
   itemTitle      String
   supplier       String?
@@ -365,6 +438,8 @@ model PurchaseOrder {
 }
 
 model InventoryMovement {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id            String   @id @default(cuid())
   itemType      String   // "product" or "filament"
   itemId        String
@@ -378,6 +453,8 @@ model InventoryMovement {
 }
 
 model Quote {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id                 String      @id @default(cuid())
   quoteNumber        String      @unique
   customerId         String?
@@ -399,6 +476,8 @@ model Quote {
 }
 
 model QuoteItem {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id          String   @id @default(cuid())
   quoteId     String
   quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
@@ -413,6 +492,8 @@ model QuoteItem {
 }
 
 model PrintJob {
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   id               String    @id @default(cuid())
   printerId        String
   printer          Printer   @relation(fields: [printerId], references: [id], onDelete: Cascade)

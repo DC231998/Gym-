@@ -12,7 +12,8 @@ export interface SessionPayload {
   userId: string;
   email: string;
   name: string;
-  role: string;
+  companyId: string | null;
+  companyRole: string;
 }
 
 /** Sign a JWT and return the token string */
