@@ -15,6 +15,7 @@ import {
   Users,
   ShoppingBag,
   Disc,
+  LogOut,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -265,7 +266,7 @@ export default function Header({
         )}
       </div>
 
-      {/* Right Actions: WhatsApp & Notifications */}
+      {/* Right Actions: WhatsApp, Notifications & Logout */}
       <div className="flex items-center gap-2">
         {/* Quick WhatsApp Action */}
         <a
@@ -337,6 +338,22 @@ export default function Header({
             </div>
           )}
         </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={async () => {
+            await fetch('/api/auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'logout' }),
+            });
+            router.push('/login');
+          }}
+          className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+          title="Cerrar sesión"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </header>
   );
