@@ -48,6 +48,7 @@ export default function FilamentsPage() {
   const [printTemp, setPrintTemp] = useState<number | string>(220);
   const [bedTemp, setBedTemp] = useState<number | string>(55);
   const [notes, setNotes] = useState('');
+  const [isGift, setIsGift] = useState(false);
 
   // Quick Restock Modal
   const [restockModalOpen, setRestockModalOpen] = useState(false);
@@ -89,6 +90,7 @@ export default function FilamentsPage() {
     setPrintTemp(220);
     setBedTemp(55);
     setNotes('');
+    setIsGift(false);
     setIsModalOpen(true);
   };
 
@@ -109,6 +111,7 @@ export default function FilamentsPage() {
     setPrintTemp(fil.printTemp || 215);
     setBedTemp(fil.bedTemp || 60);
     setNotes(fil.notes || '');
+    setIsGift(Boolean(fil.isGift));
     setIsModalOpen(true);
   };
 
@@ -131,6 +134,7 @@ export default function FilamentsPage() {
       printTemp: Number(printTemp) || 215,
       bedTemp: Number(bedTemp) || 60,
       notes,
+      isGift,
     };
 
     try {
@@ -351,6 +355,23 @@ export default function FilamentsPage() {
                       </span>
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5">{fil.brand} • {fil.name}</div>
+                    {(() => {
+                      const noteText = (fil.notes || '').trim();
+                      if (!noteText) return null;
+                      const isUrl = /^https?:\/\/\S+$/i.test(noteText);
+                      const displayNote = noteText.length > 50 ? noteText.slice(0, 50) + '...' : noteText;
+                      return (
+                        <div className="text-[10px] mt-1 text-slate-300">
+                          {isUrl ? (
+                            <a href={noteText} target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">
+                              {displayNote}
+                            </a>
+                          ) : (
+                            <span>{displayNote}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -542,6 +563,25 @@ export default function FilamentsPage() {
                 </span>
               </div>
 
+              {/* Is Gift Checkbox */}
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-800 mt-3">
+                <input
+                  type="checkbox"
+                  id="isGiftCheckbox"
+                  checked={isGift}
+                  onChange={(e) => setIsGift(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-slate-700 bg-slate-950 text-brand-500 focus:ring-brand-500"
+                />
+                <div>
+                  <label htmlFor="isGiftCheckbox" className="text-xs font-bold text-white cursor-pointer block">
+                    Es obsequio
+                  </label>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Si es obsequio, no se registra como gasto.
+                  </p>
+                </div>
+              </div>
+
               {/* Temps & Supplier */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
@@ -573,6 +613,18 @@ export default function FilamentsPage() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
                   />
                 </div>
+              </div>
+
+              {/* Notes & URL */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-300">Notas o Link de Compra</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="URL de compra o notas adicionales..."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 resize-none"
+                />
               </div>
 
               <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">

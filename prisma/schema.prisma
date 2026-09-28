@@ -165,6 +165,8 @@ model Filament {
   printTemp           Int?     @default(220)
   bedTemp             Int?     @default(55)
   notes               String?
+  isGift              Boolean  @default(false)
+  expenseId           String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

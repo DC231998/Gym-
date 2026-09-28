@@ -41,44 +41,72 @@ export async function POST(request: Request) {
     const purchaseWeightGrams = Number(data.purchaseWeightGrams || 1000);
     const availableGrams = data.availableGrams !== undefined ? Number(data.availableGrams) : purchaseWeightGrams;
     const pricePerGram = calculateFilamentPricePerGram(purchasePrice, purchaseWeightGrams);
+    const isGift = Boolean(data.isGift);
 
-    const filament = await prisma.filament.create({
-      data: {
-        companyId: session.companyId,
-        brand: data.brand,
-        materialType: data.materialType,
-        name: data.name || `${data.brand} ${data.materialType} ${data.colorName}`,
-        colorName: data.colorName,
-        colorHex: data.colorHex || '#1A1A1A',
-        purchasePrice,
-        purchaseWeightGrams,
-        availableGrams,
-        pricePerGram,
-        purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : new Date(),
-        supplier: data.supplier || 'Proveedor Local',
-        minStockGrams: Number(data.minStockGrams || 200),
-        density: Number(data.density || 1.24),
-        printTemp: data.printTemp ? Number(data.printTemp) : 215,
-        bedTemp: data.bedTemp ? Number(data.bedTemp) : 60,
-        notes: data.notes || '',
-      },
+    const name = data.name || `${data.brand} ${data.materialType} ${data.colorName}`;
+    const purchaseDate = data.purchaseDate ? new Date(data.purchaseDate) : new Date();
+    const supplier = data.supplier || 'Proveedor Local';
+
+    const result = await prisma.$transaction(async (tx) => {
+      let expenseId: string | null = null;
+
+      // Si NO es obsequio, crear el gasto primero
+      if (!isGift) {
+        const expense = await tx.expense.create({
+          data: {
+            companyId: session.companyId,
+            category: "Filamento",
+            amount: purchasePrice,
+            date: purchaseDate,
+            supplier: supplier,
+            description: `Compra de filamento: ${name}`,
+          }
+        });
+        expenseId = expense.id;
+      }
+
+      const filament = await tx.filament.create({
+        data: {
+          companyId: session.companyId,
+          brand: data.brand,
+          materialType: data.materialType,
+          name,
+          colorName: data.colorName,
+          colorHex: data.colorHex || '#1A1A1A',
+          purchasePrice,
+          purchaseWeightGrams,
+          availableGrams,
+          pricePerGram,
+          purchaseDate,
+          supplier,
+          isGift,
+          expenseId,
+          minStockGrams: Number(data.minStockGrams || 200),
+          density: Number(data.density || 1.24),
+          printTemp: data.printTemp ? Number(data.printTemp) : 215,
+          bedTemp: data.bedTemp ? Number(data.bedTemp) : 60,
+          notes: data.notes || '',
+        },
+      });
+
+      // Record initial inventory movement
+      await tx.inventoryMovement.create({
+        data: {
+          companyId: session.companyId,
+          itemType: 'filament',
+          itemId: filament.id,
+          movementType: 'entrada',
+          quantity: availableGrams,
+          previousStock: 0,
+          newStock: availableGrams,
+          reason: 'Registro inicial de bobina',
+        },
+      });
+
+      return filament;
     });
 
-    // Record initial inventory movement
-    await prisma.inventoryMovement.create({
-      data: {
-        companyId: session.companyId,
-        itemType: 'filament',
-        itemId: filament.id,
-        movementType: 'entrada',
-        quantity: availableGrams,
-        previousStock: 0,
-        newStock: availableGrams,
-        reason: 'Registro inicial de bobina',
-      },
-    });
-
-    return NextResponse.json(filament, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -101,47 +129,104 @@ export async function PUT(request: Request) {
     const purchaseWeightGrams = data.purchaseWeightGrams !== undefined ? Number(data.purchaseWeightGrams) : current.purchaseWeightGrams;
     const pricePerGram = calculateFilamentPricePerGram(purchasePrice, purchaseWeightGrams);
     const newAvailableGrams = data.availableGrams !== undefined ? Number(data.availableGrams) : current.availableGrams;
+    const isGift = data.isGift !== undefined ? Boolean(data.isGift) : current.isGift;
+    const purchaseDate = data.purchaseDate ? new Date(data.purchaseDate) : current.purchaseDate;
+    const supplier = data.supplier !== undefined ? data.supplier : current.supplier;
+    const name = data.name !== undefined ? data.name : current.name;
 
-    // If stock changed manually, log movement
-    if (data.availableGrams !== undefined && data.availableGrams !== current.availableGrams) {
-      const diff = newAvailableGrams - current.availableGrams;
-      await prisma.inventoryMovement.create({
+    const result = await prisma.$transaction(async (tx) => {
+      let finalExpenseId = current.expenseId;
+
+      // Handle Expense transitions
+      if (!current.isGift && isGift) {
+        // Transition: false -> true (borrar gasto si existe)
+        if (current.expenseId) {
+          await tx.expense.deleteMany({
+            where: { id: current.expenseId, companyId: session.companyId }
+          });
+        }
+        finalExpenseId = null;
+      } 
+      else if (current.isGift && !isGift) {
+        // Transition: true -> false (crear gasto)
+        const expense = await tx.expense.create({
+          data: {
+            companyId: session.companyId,
+            category: "Filamento",
+            amount: purchasePrice,
+            date: purchaseDate,
+            supplier: supplier,
+            description: `Compra de filamento: ${name}`,
+          }
+        });
+        finalExpenseId = expense.id;
+      }
+      else if (!current.isGift && !isGift) {
+        // Transition: false -> false (actualizar gasto si cambió precio, fecha, proveedor, etc y si expenseId existe)
+        if (
+          current.expenseId &&
+          (purchasePrice !== current.purchasePrice || 
+           purchaseDate.getTime() !== current.purchaseDate.getTime() ||
+           supplier !== current.supplier || 
+           name !== current.name)
+        ) {
+          await tx.expense.updateMany({
+            where: { id: current.expenseId, companyId: session.companyId },
+            data: {
+              amount: purchasePrice,
+              date: purchaseDate,
+              supplier: supplier,
+              description: `Compra de filamento: ${name}`,
+            }
+          });
+        }
+      }
+
+      // If stock changed manually, log movement
+      if (data.availableGrams !== undefined && data.availableGrams !== current.availableGrams) {
+        const diff = newAvailableGrams - current.availableGrams;
+        await tx.inventoryMovement.create({
+          data: {
+            companyId: session.companyId,
+            itemType: 'filament',
+            itemId: current.id,
+            movementType: diff >= 0 ? 'entrada' : 'ajuste',
+            quantity: Math.abs(diff),
+            previousStock: current.availableGrams,
+            newStock: newAvailableGrams,
+            reason: data.adjustmentReason || 'Ajuste manual de stock',
+          },
+        });
+      }
+
+      await tx.filament.updateMany({
+        where: { id: data.id, companyId: session.companyId },
         data: {
-          companyId: session.companyId,
-          itemType: 'filament',
-          itemId: current.id,
-          movementType: diff >= 0 ? 'entrada' : 'ajuste',
-          quantity: Math.abs(diff),
-          previousStock: current.availableGrams,
-          newStock: newAvailableGrams,
-          reason: data.adjustmentReason || 'Ajuste manual de stock',
+          brand: data.brand,
+          materialType: data.materialType,
+          name: data.name,
+          colorName: data.colorName,
+          colorHex: data.colorHex,
+          purchasePrice,
+          purchaseWeightGrams,
+          availableGrams: newAvailableGrams,
+          pricePerGram,
+          purchaseDate,
+          supplier: data.supplier,
+          isGift,
+          expenseId: finalExpenseId,
+          minStockGrams: data.minStockGrams !== undefined ? Number(data.minStockGrams) : undefined,
+          density: data.density !== undefined ? Number(data.density) : undefined,
+          printTemp: data.printTemp !== undefined ? Number(data.printTemp) : undefined,
+          bedTemp: data.bedTemp !== undefined ? Number(data.bedTemp) : undefined,
+          notes: data.notes,
         },
       });
-    }
 
-    await prisma.filament.updateMany({
-      where: { id: data.id, companyId: session.companyId },
-      data: {
-        brand: data.brand,
-        materialType: data.materialType,
-        name: data.name,
-        colorName: data.colorName,
-        colorHex: data.colorHex,
-        purchasePrice,
-        purchaseWeightGrams,
-        availableGrams: newAvailableGrams,
-        pricePerGram,
-        supplier: data.supplier,
-        minStockGrams: data.minStockGrams !== undefined ? Number(data.minStockGrams) : undefined,
-        density: data.density !== undefined ? Number(data.density) : undefined,
-        printTemp: data.printTemp !== undefined ? Number(data.printTemp) : undefined,
-        bedTemp: data.bedTemp !== undefined ? Number(data.bedTemp) : undefined,
-        notes: data.notes,
-      },
+      return await tx.filament.findFirst({ where: { id: data.id, companyId: session.companyId } });
     });
 
-    const updated = await prisma.filament.findFirst({ where: { id: data.id, companyId: session.companyId } });
-    return NextResponse.json(updated);
+    return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -161,7 +246,15 @@ export async function DELETE(request: Request) {
     const current = await prisma.filament.findFirst({ where: { id, companyId: session.companyId } });
     if (!current) return NextResponse.json({ error: 'Filamento no encontrado' }, { status: 404 });
 
-    await prisma.filament.deleteMany({ where: { id, companyId: session.companyId } });
+    await prisma.$transaction(async (tx) => {
+      if (current.expenseId) {
+        await tx.expense.deleteMany({
+          where: { id: current.expenseId, companyId: session.companyId }
+        });
+      }
+      await tx.filament.deleteMany({ where: { id, companyId: session.companyId } });
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
