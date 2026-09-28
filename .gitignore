@@ -40,3 +40,9 @@ next-env.d.ts
 .vscode/
 *.swp
 *.swo
+  
+# Test Scripts  
+check-test-data.js  
+delete-test-data.js  
+test-flow.js  
+test-logo.js 
