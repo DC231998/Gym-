@@ -1,8 +1,29 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
 
 const SESSION_COOKIE = 'session';
+// ... existing constants ...
+
+export async function getSession(): Promise<SessionPayload | null> {
+  const token = cookies().get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const payload = await verifySession(token);
+  if (!payload) return null;
+  
+  // DB Verification to ensure user still has access (hasn't been kicked out)
+  const dbUser = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { companyId: true }
+  });
+  
+  if (!dbUser || dbUser.companyId !== payload.companyId) {
+    return null; // Session revoked or modified
+  }
+  
+  return payload;
+}
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'dev-secret-change-in-production-min32chars!!'
 );
@@ -55,11 +76,6 @@ export async function getSessionFromRequest(req: NextRequest): Promise<SessionPa
   return verifySession(token);
 }
 
-/** Read and verify the session from server-side cookies() (for API routes / server components) */
-export async function getSession(): Promise<SessionPayload | null> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  return verifySession(token);
-}
+
 
 export const SESSION_COOKIE_NAME = SESSION_COOKIE;

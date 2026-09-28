@@ -33,6 +33,8 @@ export async function GET() {
     return NextResponse.json({
       inviteCode: company.inviteCode,
       members: company.users,
+      currentUserRole: session.companyRole,
+      currentUserId: session.userId,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

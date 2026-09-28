@@ -128,58 +128,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
       }
 
-      // MIGRATION: If the user logs in but has no company, it's the original admin.
-      // Create the main company and migrate all existing data to it.
-      let finalUser = user;
       if (!user.companyId) {
-        const companyName = "3D Business Manager"; // Default name for the original business
-        const newCompany = await prisma.company.create({
-          data: { name: companyName, ownerId: user.id },
-        });
-
-        finalUser = await prisma.user.update({
-          where: { id: user.id },
-          data: { companyId: newCompany.id, companyRole: 'owner' },
-        });
-
-        // Migrate all existing records without a companyId to this new company
-        const updatePayload = { companyId: newCompany.id };
-        
-        await Promise.all([
-          prisma.businessSettings.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.printer.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.printerMaintenance.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.filament.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.filamentPurchase.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.category.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.season.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.product.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.productImage.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.package.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.packageItem.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.customer.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.sale.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.saleItem.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.payment.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.expense.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.purchaseOrder.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.inventoryMovement.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.quote.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.quoteItem.updateMany({ where: { companyId: null }, data: updatePayload }),
-          prisma.printJob.updateMany({ where: { companyId: null }, data: updatePayload }),
-        ]);
+        return NextResponse.json({ error: 'Tu cuenta ha sido desactivada o no pertenece a ninguna empresa.' }, { status: 401 });
       }
 
       const token = await signSession({
-        userId: finalUser.id,
-        email: finalUser.email,
-        name: finalUser.name,
-        companyId: finalUser.companyId,
-        companyRole: finalUser.companyRole,
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        companyId: user.companyId,
+        companyRole: user.companyRole,
       });
 
       const res = NextResponse.json({
-        user: { id: finalUser.id, email: finalUser.email, name: finalUser.name, companyId: finalUser.companyId, companyRole: finalUser.companyRole },
+        user: { id: user.id, email: user.email, name: user.name, companyId: user.companyId, companyRole: user.companyRole },
       });
       res.cookies.set(createSessionCookie(token));
       return res;
