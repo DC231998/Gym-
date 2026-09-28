@@ -8,7 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 // Routes that are publicly accessible (no session required)
-const PUBLIC_PATHS = ['/login'];
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password'];
 
 // Prefixes that are always public (API auth, static assets, Next internals)
 const PUBLIC_PREFIXES = [

@@ -28,7 +28,8 @@ export default function AppShell({ children }: AppShellProps) {
       .catch((err) => console.error('Error fetching settings in AppShell:', err));
   }, []);
 
-  if (pathname === '/login') {
+  const isAuthRoute = ['/login', '/forgot-password', '/reset-password'].includes(pathname);
+  if (isAuthRoute) {
     return <div className="min-h-screen bg-slate-950 text-slate-100">{children}</div>;
   }
 

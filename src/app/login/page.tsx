@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Cpu, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
 type Mode = 'login' | 'register';
 
@@ -177,9 +178,16 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Contraseña {mode === 'register' && <span className="text-slate-500">(mín. 8 caracteres)</span>}
-              </label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Contraseña {mode === 'register' && <span className="text-slate-500">(mín. 8 caracteres)</span>}
+                </label>
+                {mode === 'login' && (
+                  <Link href="/forgot-password" className="text-xs text-brand-400 hover:text-brand-300 font-medium">
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
