@@ -120,14 +120,32 @@ export default function CatalogGeneratorPage() {
     })
     .filter((group) => group.totalProducts > 0);
 
-  // Generate and Download PDF using jsPDF + html2canvas
   const handleGeneratePdf = async () => {
-    if (!catalogPrintRef.current) return;
     setIsGeneratingPdf(true);
-    setGenerationProgress('Preparando páginas y renderizando imágenes de alta fidelidad...');
+    setGenerationProgress('Preparando páginas y solicitando imágenes de alta fidelidad...');
 
     try {
+      // 1. Give React a moment to apply isGeneratingPdf=true to the DOM (removes loading="lazy")
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
       const container = catalogPrintRef.current;
+      if (!container) {
+        throw new Error('Error de renderizado: No se pudo preparar el contenedor del PDF.');
+      }
+      
+      // 2. Wait for all images to actually load, so they don't appear blank in the PDF
+      setGenerationProgress('Descargando imágenes faltantes (puede tomar unos segundos en red lenta)...');
+      const images = Array.from(container.querySelectorAll('img'));
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve; // Prevent blocking if an image URL is broken
+          });
+        })
+      );
+
       const pages = container.querySelectorAll<HTMLElement>('.pdf-page');
 
       if (pages.length === 0) {
@@ -150,8 +168,9 @@ export default function CatalogGeneratorPage() {
         const canvas = await html2canvas(pageEl, {
           scale: 2, // 2x resolution for crisp commercial print
           useCORS: true,
-          logging: false,
           backgroundColor: '#090d16',
+          windowWidth: pageEl.scrollWidth,
+          windowHeight: pageEl.scrollHeight,
         });
 
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -333,14 +352,59 @@ export default function CatalogGeneratorPage() {
           </span>
         </div>
 
-        {/* The hidden/rendered printable catalog pages */}
-        <div
-          ref={catalogPrintRef}
-          className="space-y-8 flex flex-col items-center mx-auto"
-        >
-          {/* PAGE 1: COMMERCIAL COVER (PORTADA) */}
-          {includeCover && (
-            <div className="pdf-page w-[210mm] min-h-[297mm] h-[297mm] p-12 bg-slate-950 text-white flex flex-col justify-between relative overflow-hidden border border-slate-800 shadow-2xl">
+        {/* VISIBLE RESPONSIVE SCREEN VIEW */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-12">
+          {activeProducts.map((prod) => {
+            const primaryImg = prod.images?.find((img: any) => img.isPrimary) || prod.images?.[0];
+            return (
+              <div key={prod.id} className="rounded-2xl bg-slate-900/90 border border-slate-800/90 overflow-hidden flex flex-col shadow-md hover:border-brand-500/50 transition-colors">
+                <div className="aspect-square w-full bg-slate-950 relative flex items-center justify-center">
+                  {primaryImg?.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={primaryImg.url} alt={prod.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  ) : (
+                    <Box className="w-12 h-12 text-slate-700" />
+                  )}
+                  <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-xl bg-slate-950/90 backdrop-blur-md text-brand-400 font-black text-sm border border-brand-500/40 font-mono">
+                    {formatCurrency(prod.salePrice)}
+                  </div>
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-md text-[10px] font-semibold text-slate-300 border border-slate-700">
+                    {prod.category?.name}
+                  </div>
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1 mb-4">
+                    <h3 className="text-sm font-bold text-white line-clamp-1">{prod.name}</h3>
+                    <p className="text-xs text-slate-400 line-clamp-2">{prod.description || 'Impresión en alta definición.'}</p>
+                  </div>
+                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="font-mono">SKU: {prod.sku}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: prod.defaultColorHex }} />
+                      <span>{prod.defaultColorName}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          
+          {activeProducts.length === 0 && (
+            <div className="col-span-full py-12 text-center text-slate-500 bg-slate-900/50 rounded-2xl border border-slate-800 border-dashed">
+              Selecciona al menos un producto arriba para ver la previsualización.
+            </div>
+          )}
+        </div>
+
+        {/* HIDDEN A4 PDF CANVAS - Only mounts during generation to avoid loading heavy images twice */}
+        {isGeneratingPdf && (
+          <div
+            ref={catalogPrintRef}
+            className="absolute top-0 left-0 opacity-0 pointer-events-none -z-50 space-y-8 flex flex-col items-center w-full"
+          >
+            {/* PAGE 1: COMMERCIAL COVER (PORTADA) */}
+            {includeCover && (
+              <div className="pdf-page shrink-0 w-[210mm] min-h-[297mm] h-[297mm] p-12 bg-slate-950 text-white flex flex-col justify-between relative overflow-hidden border border-slate-800 shadow-2xl">
               {/* Background Geometric Accent */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -384,14 +448,18 @@ export default function CatalogGeneratorPage() {
               <div className="pt-6 border-t border-slate-800/80 grid grid-cols-3 gap-4 text-xs text-slate-400 z-10">
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                  <span className="truncate">{settings?.whatsapp || '443 123 4567'}</span>
+                  <span>{(settings?.whatsapp || '443 123 4567').length > 20 ? (settings?.whatsapp || '443 123 4567').slice(0, 20) + '...' : (settings?.whatsapp || '443 123 4567')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                  <span className="truncate">{settings?.city || 'Tarímbaro'}, {settings?.state || 'Michoacán'}</span>
+                  <span>
+                    {`${settings?.city || 'Tarímbaro'}, ${settings?.state || 'Michoacán'}`.length > 30 
+                      ? `${settings?.city || 'Tarímbaro'}, ${settings?.state || 'Michoacán'}`.slice(0, 30) + '...' 
+                      : `${settings?.city || 'Tarímbaro'}, ${settings?.state || 'Michoacán'}`}
+                  </span>
                 </div>
-                <div className="text-right font-medium text-slate-400 truncate">
-                  {settings?.email || 'ventas@3dbusiness.com'}
+                <div className="text-right font-medium text-slate-400">
+                  {(settings?.email || 'ventas@3dbusiness.com').length > 30 ? (settings?.email || 'ventas@3dbusiness.com').slice(0, 30) + '...' : (settings?.email || 'ventas@3dbusiness.com')}
                 </div>
               </div>
             </div>
@@ -412,7 +480,7 @@ export default function CatalogGeneratorPage() {
                 {/* SEASON DIVIDER PAGE (SEPARADOR TEMÁTICO) */}
                 {includeDividers && (
                   <div
-                    className="pdf-page w-[210mm] min-h-[297mm] h-[297mm] p-12 text-white flex flex-col justify-between relative overflow-hidden border border-slate-800 shadow-2xl"
+                    className="pdf-page shrink-0 w-[210mm] min-h-[297mm] h-[297mm] p-12 text-white flex flex-col justify-between relative overflow-hidden border border-slate-800 shadow-2xl"
                     style={{
                       background: `linear-gradient(135deg, #090d16 0%, #0f172a 50%, #090d16 100%)`,
                     }}
@@ -472,7 +540,7 @@ export default function CatalogGeneratorPage() {
                 {productChunks.map((chunk, pageIndex) => (
                   <div
                     key={`${season.id}-page-${pageIndex}`}
-                    className="pdf-page w-[210mm] min-h-[297mm] h-[297mm] p-10 bg-slate-950 text-white flex flex-col justify-between border border-slate-800 shadow-2xl relative"
+                    className="pdf-page shrink-0 w-[210mm] min-h-[297mm] h-[297mm] p-10 bg-slate-950 text-white flex flex-col justify-between border border-slate-800 shadow-2xl relative"
                   >
                     {/* Page Header */}
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
@@ -492,7 +560,7 @@ export default function CatalogGeneratorPage() {
 
                     {/* Products Dynamic Grid according to itemsPerPage */}
                     <div
-                      className={`grid gap-5 my-auto ${
+                      className={`grid gap-5 mt-6 mb-auto ${
                         itemsPerPage === 1
                           ? 'grid-cols-1'
                           : itemsPerPage === 2
@@ -511,16 +579,18 @@ export default function CatalogGeneratorPage() {
                         return (
                           <div
                             key={prod.id}
-                            className="rounded-2xl bg-slate-900/90 border border-slate-800/90 overflow-hidden flex flex-col justify-between shadow-md p-3.5"
+                            className="rounded-2xl bg-slate-900/90 border border-slate-800/90 flex flex-col justify-between shadow-md p-3.5"
                           >
                             {/* Product Photo */}
-                            <div className="aspect-square w-full rounded-xl bg-slate-950 overflow-hidden relative flex items-center justify-center mb-3">
+                            <div className="h-56 w-full rounded-xl bg-slate-950 relative flex items-center justify-center mb-3 shrink-0">
                               {primaryImg?.url ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={primaryImg.url}
                                   alt={prod.name}
-                                  className="w-full h-full object-cover"
+                                  loading={isGeneratingPdf ? 'eager' : 'lazy'}
+                                  decoding="async"
+                                  className="w-full h-full object-cover rounded-xl"
                                 />
                               ) : (
                                 <Box className="w-12 h-12 text-slate-700" />
@@ -539,11 +609,13 @@ export default function CatalogGeneratorPage() {
 
                             {/* Product Details */}
                             <div className="space-y-1">
-                              <h3 className="text-xs font-bold text-white line-clamp-1 leading-snug">
-                                {prod.name}
+                              <h3 className="text-xs font-bold text-white leading-snug">
+                                {prod.name.length > 35 ? prod.name.slice(0, 35) + '...' : prod.name}
                               </h3>
-                              <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                                {prod.description || 'Impresión en alta definición.'}
+                              <p className="text-[11px] text-slate-400 leading-relaxed">
+                                {(prod.description || 'Impresión en alta definición.').length > 70 
+                                  ? (prod.description || 'Impresión en alta definición.').slice(0, 70) + '...' 
+                                  : (prod.description || 'Impresión en alta definición.')}
                               </p>
                             </div>
 
@@ -576,6 +648,7 @@ export default function CatalogGeneratorPage() {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );
