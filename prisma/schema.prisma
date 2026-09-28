@@ -11,6 +11,7 @@ datasource db {
 model Company {
   id          String   @id @default(cuid())
   name        String
+  logoUrl     String?
   inviteCode  String   @unique @default(cuid())
   ownerId     String
   owner       User     @relation("CompanyOwner", fields: [ownerId], references: [id])

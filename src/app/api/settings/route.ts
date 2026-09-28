@@ -11,15 +11,29 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Fetch the company to get the definitive name and logo
+    const company = await prisma.company.findUnique({
+      where: { id: session.companyId },
+      select: { name: true, logoUrl: true },
+    });
+
     let settings = await prisma.businessSettings.findFirst({
       where: { companyId: session.companyId },
     });
+
     if (!settings) {
       settings = await prisma.businessSettings.create({
         data: { companyId: session.companyId },
       });
     }
-    return NextResponse.json(settings);
+
+    return NextResponse.json({
+      ...settings,
+      // Priority goes to Company.name, fallback to settings.businessName if empty, fallback to fixed text
+      businessName: company?.name || settings.businessName || '3D Business Manager',
+      companyLogo: company?.logoUrl || null,
+      currentUserRole: session.companyRole,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error al obtener configuración' }, { status: 500 });
   }
@@ -34,6 +48,34 @@ export async function PUT(request: Request) {
 
     const data = await request.json();
     
+    // Server-side validation for logoUrl length (>100KB is approx 137000 base64 chars)
+    if (data.companyLogo && typeof data.companyLogo === 'string') {
+      if (data.companyLogo.length > 150000) { // 150,000 characters limit
+        return NextResponse.json({ error: 'El logo es demasiado pesado. La imagen debe ser menor a 100 KB.' }, { status: 400 });
+      }
+      
+      const isPng = data.companyLogo.startsWith('data:image/png;base64,');
+      const isJpeg = data.companyLogo.startsWith('data:image/jpeg;base64,');
+      const isWebp = data.companyLogo.startsWith('data:image/webp;base64,');
+      
+      if (!isPng && !isJpeg && !isWebp) {
+        return NextResponse.json({ error: 'Formato de imagen no permitido. Usa PNG, JPG o WEBP.' }, { status: 400 });
+      }
+    }
+
+    // Only owners can update the company name and logo
+    if (session.companyRole === 'owner') {
+      if (data.businessName || data.companyLogo !== undefined) {
+        await prisma.company.update({
+          where: { id: session.companyId },
+          data: {
+            ...(data.businessName ? { name: data.businessName } : {}),
+            ...(data.companyLogo !== undefined ? { logoUrl: data.companyLogo } : {}),
+          },
+        });
+      }
+    }
+
     // Validate profit percentages sum to 100%
     if (
       data.profitReinvestmentPercent !== undefined &&
@@ -53,7 +95,7 @@ export async function PUT(request: Request) {
     }
 
     const updateData = {
-      businessName: data.businessName,
+      businessName: data.businessName, // Keep it in sync for legacy compatibility
       phone: data.phone,
       whatsapp: data.whatsapp,
       email: data.email,

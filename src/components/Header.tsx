@@ -21,12 +21,14 @@ import {
 interface HeaderProps {
   onToggleSidebar: () => void;
   businessName?: string;
+  companyLogo?: string | null;
   whatsappNumber?: string;
 }
 
 export default function Header({
   onToggleSidebar,
   businessName = '3D Business Manager',
+  companyLogo,
   whatsappNumber = '4431234567',
 }: HeaderProps) {
   const router = useRouter();
@@ -201,9 +203,14 @@ export default function Header({
         >
           <Menu className="w-5 h-5" />
         </button>
-        <span className="lg:hidden text-xs font-bold text-slate-200 truncate max-w-[120px]">
-          {businessName}
-        </span>
+        <div className="lg:hidden flex items-center gap-2">
+          {companyLogo && (
+            <img src={companyLogo} alt={businessName} className="w-6 h-6 rounded-md object-cover bg-white" />
+          )}
+          <span className="text-xs font-bold text-slate-200 truncate max-w-[120px]">
+            {businessName}
+          </span>
+        </div>
       </div>
 
       {/* Global Search Bar */}

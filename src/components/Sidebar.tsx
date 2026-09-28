@@ -25,6 +25,7 @@ import {
 
 interface SidebarProps {
   businessName?: string;
+  companyLogo?: string | null;
   isOpen?: boolean;
   onClose?: () => void;
 }
@@ -48,7 +49,7 @@ const NAV_ITEMS = [
   { href: '/backup', label: 'Respaldos JSON', icon: Database },
 ];
 
-export default function Sidebar({ businessName = '3D Business Manager', isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ businessName = '3D Business Manager', companyLogo, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -70,9 +71,13 @@ export default function Sidebar({ businessName = '3D Business Manager', isOpen, 
         {/* Brand Header */}
         <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group" onClick={onClose}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
-              <Cpu className="w-5 h-5 text-slate-950 stroke-[2.5]" />
-            </div>
+            {companyLogo ? (
+              <img src={companyLogo} alt={businessName} className="w-10 h-10 rounded-xl object-cover bg-white shadow-lg shadow-brand-500/10 group-hover:scale-105 transition-transform" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
+                <Cpu className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+              </div>
+            )}
             <div>
               <h1 className="text-sm font-bold tracking-tight text-white leading-tight truncate max-w-[150px]">
                 {businessName}

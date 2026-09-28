@@ -28,6 +28,8 @@ export default function SettingsPage() {
 
   // Business Form State
   const [businessName, setBusinessName] = useState('3D Business Manager');
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [phone, setPhone] = useState('443 123 4567');
   const [whatsapp, setWhatsapp] = useState('4431234567');
   const [email, setEmail] = useState('contacto@3dbusiness.com');
@@ -69,6 +71,8 @@ export default function SettingsPage() {
       if (data) {
         setSettings(data);
         setBusinessName(data.businessName || '3D Business Manager');
+        setCompanyLogo(data.companyLogo || null);
+        setCurrentUserRole(data.currentUserRole || '');
         setPhone(data.phone || '');
         setWhatsapp(data.whatsapp || '');
         setEmail(data.email || '');
@@ -108,6 +112,7 @@ export default function SettingsPage() {
 
     const payload = {
       businessName,
+      companyLogo,
       phone,
       whatsapp,
       email,
@@ -143,11 +148,53 @@ export default function SettingsPage() {
       setSuccessMessage('¡Configuración del negocio guardada exitosamente!');
       setTimeout(() => setSuccessMessage(null), 3000);
       loadSettings();
+      window.dispatchEvent(new Event('settingsUpdated'));
     } catch (e: any) {
       alert(e.message);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen inicial no debe superar los 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Max dimensions
+        const MAX_SIZE = 256;
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          setCompanyLogo(dataUrl);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   // Demo Data Deletion
@@ -208,14 +255,55 @@ export default function SettingsPage() {
               <input
                 type="text"
                 required
+                disabled={currentUserRole !== 'owner'}
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="3D Business Manager"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-bold"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-bold disabled:opacity-50"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
                 Este nombre reemplaza el provisional en la barra lateral, catálogos PDF y cotizaciones.
               </span>
+            </div>
+
+            <div className="sm:col-span-2 border-t border-slate-800 pt-4 mt-2">
+              <label className="block text-xs font-semibold text-slate-300 mb-3">Logo de la Empresa</label>
+              <div className="flex items-center gap-6">
+                {companyLogo ? (
+                  <div className="relative group">
+                    <img src={companyLogo} alt="Logo" className="w-20 h-20 rounded-2xl object-cover bg-white shadow-lg border border-slate-700" />
+                    {currentUserRole === 'owner' && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyLogo(null)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                        title="Eliminar logo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-slate-950 border border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-500">
+                    <Building className="w-6 h-6 mb-1 opacity-50" />
+                    <span className="text-[9px] uppercase tracking-wider font-bold">Sin logo</span>
+                  </div>
+                )}
+
+                {currentUserRole === 'owner' && (
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      onChange={handleLogoChange}
+                      className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-500/10 file:text-brand-400 hover:file:bg-brand-500/20 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-2">
+                      Sube un archivo PNG, JPG o WEBP. La imagen será redimensionada y optimizada automáticamente.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>

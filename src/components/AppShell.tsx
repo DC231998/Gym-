@@ -14,18 +14,27 @@ export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState('3D Business Manager');
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [whatsapp, setWhatsapp] = useState('4431234567');
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.businessName) {
-          setBusinessName(data.businessName);
-          if (data.whatsapp) setWhatsapp(data.whatsapp);
-        }
-      })
-      .catch((err) => console.error('Error fetching settings in AppShell:', err));
+    const fetchSettings = () => {
+      fetch('/api/settings')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.businessName) {
+            setBusinessName(data.businessName);
+            setCompanyLogo(data.companyLogo || null); // handle null explicitly
+            if (data.whatsapp) setWhatsapp(data.whatsapp);
+          }
+        })
+        .catch((err) => console.error('Error fetching settings in AppShell:', err));
+    };
+
+    fetchSettings();
+
+    window.addEventListener('settingsUpdated', fetchSettings);
+    return () => window.removeEventListener('settingsUpdated', fetchSettings);
   }, []);
 
   const isAuthRoute = ['/login', '/forgot-password', '/reset-password'].includes(pathname);
@@ -37,6 +46,7 @@ export default function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-brand-500/30 selection:text-brand-200">
       <Sidebar
         businessName={businessName}
+        companyLogo={companyLogo}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -45,6 +55,7 @@ export default function AppShell({ children }: AppShellProps) {
       <div className="lg:pl-64 flex flex-col min-h-screen">
         <Header
           businessName={businessName}
+          companyLogo={companyLogo}
           whatsappNumber={whatsapp}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
